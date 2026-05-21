@@ -94,6 +94,15 @@ Do not commit private keys. Keep `contracts/.env` ignored.
 
 ## Deploy Frontend To Vercel
 
+If Vercel shows `404: NOT_FOUND`, it usually means the deployment is pointed at the repo root without serving the Vite build output. This repo now includes:
+
+```txt
+vercel.json
+frontend/vercel.json
+```
+
+These files tell Vercel how to build and serve the app.
+
 ### Option 1: Vercel Dashboard
 
 1. Push the project to GitHub.
@@ -114,6 +123,30 @@ Install Command: npm install
 ```
 
 5. Deploy.
+
+If the project already exists and shows `404: NOT_FOUND`:
+
+1. Open the Vercel project dashboard.
+2. Go to `Settings`.
+3. Open `Build and Development Settings`.
+4. Set `Root Directory` to:
+
+```txt
+frontend
+```
+
+5. Confirm these values:
+
+```txt
+Framework Preset: Vite
+Build Command: npm run build
+Output Directory: dist
+Install Command: npm install
+```
+
+6. Go to `Deployments`.
+7. Click the latest deployment menu.
+8. Click `Redeploy`.
 
 ### Option 2: Vercel CLI
 
