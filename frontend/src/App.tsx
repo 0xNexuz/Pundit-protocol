@@ -220,7 +220,12 @@ function App() {
       </nav>
 
       {imageSections.map((section, index) => (
-        <section className="image-section" key={section.src} data-reveal>
+        <section
+          className="image-section"
+          key={section.src}
+          data-reveal
+          data-direction={index % 2 === 0 ? 'right' : 'left'}
+        >
           <img
             src={section.src}
             alt={section.alt}
