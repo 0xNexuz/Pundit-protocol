@@ -7,6 +7,17 @@ import {
 } from './protocol'
 import './App.css'
 
+const imageSections = [
+  { src: '/images/hero.png', alt: 'Welcome to Pundit Protocol' },
+  { src: '/images/02.png', alt: 'The Gaffer Knows Best' },
+  { src: '/images/03.png', alt: 'Built Different squad cards' },
+  { src: '/images/04.png', alt: 'Match Day is Calling' },
+  { src: '/images/05.png', alt: 'Make Your Predictions' },
+  { src: '/images/06.png', alt: 'Climb the Standings' },
+  { src: '/images/07.png', alt: 'Own Your Reputation' },
+  { src: '/images/08.png', alt: 'Join the Pundit Nation' },
+]
+
 const outcomes = ['Home win', 'Draw', 'Away win']
 
 type PredictionRow = {
@@ -58,14 +69,10 @@ function App() {
           }
         })
       },
-      {
-        rootMargin: '0px 0px -12% 0px',
-        threshold: 0.18,
-      },
+      { rootMargin: '0px 0px -10% 0px', threshold: 0.16 },
     )
 
     animatedSections.forEach((section) => observer.observe(section))
-
     return () => observer.disconnect()
   }, [])
 
@@ -77,8 +84,7 @@ function App() {
       const message = await action()
       setStatus(message || `${label} complete.`)
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : 'Transaction failed.'
-      setError(message)
+      setError(caught instanceof Error ? caught.message : 'Transaction failed.')
       setStatus('Ready.')
     }
   }
@@ -128,10 +134,7 @@ function App() {
 
   async function subscribeToPundit() {
     await run('Subscribing', async () => {
-      if (!isAddress(punditAddress)) {
-        throw new Error('Enter a valid pundit address.')
-      }
-
+      if (!isAddress(punditAddress)) throw new Error('Enter a valid pundit address.')
       const { subscription } = await getProtocolContracts()
       const price = await subscription.punditMonthlyPrice(punditAddress)
       const tx = await subscription.subscribe(punditAddress, { value: price })
@@ -171,10 +174,7 @@ function App() {
 
   async function gradePundit() {
     await run('Grading pundit', async () => {
-      if (!isAddress(punditAddress)) {
-        throw new Error('Enter a valid pundit address.')
-      }
-
+      if (!isAddress(punditAddress)) throw new Error('Enter a valid pundit address.')
       const { tracker } = await getProtocolContracts()
       const tx = await tracker.gradePundit(matchId, punditAddress)
       setResult(`Grade transaction sent: ${tx.hash}`)
@@ -185,16 +185,16 @@ function App() {
 
   async function loadAccuracy() {
     await run('Loading accuracy', async () => {
-      if (!isAddress(accuracyAddress)) {
-        throw new Error('Enter a valid address.')
-      }
-
+      if (!isAddress(accuracyAddress)) throw new Error('Enter a valid address.')
       const { tracker } = await getProtocolContracts()
       const accuracy = await tracker.getAccuracy(accuracyAddress)
       const stats = await tracker.stats(accuracyAddress)
-      const percent = (Number(accuracy) / 100).toFixed(2)
       setResult(
-        `${shortAddress(accuracyAddress)} accuracy: ${percent}% | Wins: ${stats.wins} | Losses: ${stats.losses} | Resolved: ${stats.totalResolved}`,
+        `${shortAddress(accuracyAddress)} accuracy: ${(Number(accuracy) / 100).toFixed(
+          2,
+        )}% | Wins: ${stats.wins} | Losses: ${stats.losses} | Resolved: ${
+          stats.totalResolved
+        }`,
       )
       return 'Accuracy loaded.'
     })
@@ -211,167 +211,182 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
-      <header className="topbar" data-reveal>
-        <div>
-          <p className="eyebrow">Pundit Protocol</p>
-          <h1>X Layer Control Panel</h1>
-        </div>
-        <button type="button" className="primary-button" onClick={connectWallet}>
+    <main className="site-frame">
+      <nav className="site-nav">
+        <a href="#protocol-console">Protocol Console</a>
+        <button type="button" onClick={connectWallet}>
           {account ? shortAddress(account) : 'Connect wallet'}
         </button>
-      </header>
+      </nav>
 
-      <section className="status-panel" data-reveal>
-        <div>
-          <span>Status</span>
-          <strong>{status}</strong>
-        </div>
-        {error && <p className="error">{error}</p>}
-      </section>
+      {imageSections.map((section, index) => (
+        <section className="image-section" key={section.src} data-reveal>
+          <img
+            src={section.src}
+            alt={section.alt}
+            className="section-image"
+            loading={index === 0 ? 'eager' : 'lazy'}
+          />
+        </section>
+      ))}
 
-      <section className="contract-grid" data-reveal>
-        <div>
-          <span>Registry</span>
-          <code>{CONTRACT_ADDRESSES.registry}</code>
+      <section id="protocol-console" className="console-section" data-reveal>
+        <div className="console-heading">
+          <p>Live on X Layer Testnet</p>
+          <h1>Protocol Console</h1>
         </div>
-        <div>
-          <span>Tracker</span>
-          <code>{CONTRACT_ADDRESSES.tracker}</code>
-        </div>
-        <div>
-          <span>Subscription</span>
-          <code>{CONTRACT_ADDRESSES.subscription}</code>
-        </div>
-      </section>
 
-      <section className="workspace">
-        <div className="panel" data-reveal>
-          <h2>Predictions</h2>
-          <label>
-            Match ID
-            <input value={matchId} onChange={(event) => setMatchId(event.target.value)} />
-          </label>
-          <label>
-            Kickoff time
-            <input
-              type="datetime-local"
-              value={kickoffTime}
-              onChange={(event) => setKickoffTime(event.target.value)}
-            />
-          </label>
-          <label>
-            Pick
-            <select
-              value={predictionOutcome}
-              onChange={(event) => setPredictionOutcome(event.target.value)}
-            >
-              {outcomes.map((outcome, index) => (
-                <option key={outcome} value={index}>
-                  {outcome}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="button-row">
-            <button type="button" onClick={submitPrediction}>
-              Submit prediction
-            </button>
-            <button type="button" onClick={loadPredictions}>
-              Load match predictions
-            </button>
+        <div className="status-panel">
+          <div>
+            <span>Status</span>
+            <strong>{status}</strong>
+          </div>
+          {error && <p className="error">{error}</p>}
+        </div>
+
+        <div className="contract-grid">
+          <div>
+            <span>Registry</span>
+            <code>{CONTRACT_ADDRESSES.registry}</code>
+          </div>
+          <div>
+            <span>Tracker</span>
+            <code>{CONTRACT_ADDRESSES.tracker}</code>
+          </div>
+          <div>
+            <span>Subscription</span>
+            <code>{CONTRACT_ADDRESSES.subscription}</code>
           </div>
         </div>
 
-        <div className="panel" data-reveal>
-          <h2>Subscriptions</h2>
-          <label>
-            Pundit address
-            <input
-              value={punditAddress}
-              onChange={(event) => setPunditAddress(event.target.value)}
-              placeholder="0x..."
-            />
-          </label>
-          <label>
-            Monthly price in OKB
-            <input
-              value={subscriptionPrice}
-              onChange={(event) => setSubscriptionPrice(event.target.value)}
-              inputMode="decimal"
-            />
-          </label>
-          <label>
-            Subscriber address
-            <input
-              value={subscriberAddress}
-              onChange={(event) => setSubscriberAddress(event.target.value)}
-              placeholder="0x..."
-            />
-          </label>
-          <div className="button-row">
-            <button type="button" onClick={setPrice}>
-              Set my price
-            </button>
-            <button type="button" onClick={subscribeToPundit}>
-              Subscribe
-            </button>
-            <button type="button" onClick={checkSubscription}>
-              Check access
-            </button>
-            <button type="button" onClick={withdrawEarnings}>
-              Withdraw
-            </button>
-          </div>
-        </div>
-
-        <div className="panel" data-reveal>
-          <h2>Accuracy Tracker</h2>
-          <label>
-            Actual result
-            <select value={actualOutcome} onChange={(event) => setActualOutcome(event.target.value)}>
-              {outcomes.map((outcome, index) => (
-                <option key={outcome} value={index}>
-                  {outcome}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Address to inspect
-            <input
-              value={accuracyAddress}
-              onChange={(event) => setAccuracyAddress(event.target.value)}
-              placeholder="0x..."
-            />
-          </label>
-          <div className="button-row">
-            <button type="button" onClick={resolveMatch}>
-              Resolve match
-            </button>
-            <button type="button" onClick={gradePundit}>
-              Grade pundit
-            </button>
-            <button type="button" onClick={loadAccuracy}>
-              Load accuracy
-            </button>
-          </div>
-        </div>
-
-        <div className="panel output-panel" data-reveal>
-          <h2>On-chain Output</h2>
-          <p>{result}</p>
-          {predictions.length > 0 && (
-            <div className="prediction-list">
-              {predictions.map((prediction) => (
-                <div key={`${prediction.pundit}-${prediction.timestamp.toString()}`}>
-                  <strong>{shortAddress(prediction.pundit)}</strong>
-                  <span>{outcomes[Number(prediction.predictedOutcome)]}</span>
-                  <small>{new Date(Number(prediction.timestamp) * 1000).toLocaleString()}</small>
-                </div>
-              ))}
+        <div className="workspace">
+          <div className="panel">
+            <h2>Predictions</h2>
+            <label>
+              Match ID
+              <input value={matchId} onChange={(event) => setMatchId(event.target.value)} />
+            </label>
+            <label>
+              Kickoff time
+              <input
+                type="datetime-local"
+                value={kickoffTime}
+                onChange={(event) => setKickoffTime(event.target.value)}
+              />
+            </label>
+            <label>
+              Pick
+              <select
+                value={predictionOutcome}
+                onChange={(event) => setPredictionOutcome(event.target.value)}
+              >
+                {outcomes.map((outcome, index) => (
+                  <option key={outcome} value={index}>
+                    {outcome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="button-row">
+              <button type="button" onClick={submitPrediction}>
+                Submit prediction
+              </button>
+              <button type="button" onClick={loadPredictions}>
+                Load predictions
+              </button>
             </div>
-          )}
+          </div>
+
+          <div className="panel">
+            <h2>Subscriptions</h2>
+            <label>
+              Pundit address
+              <input
+                value={punditAddress}
+                onChange={(event) => setPunditAddress(event.target.value)}
+                placeholder="0x..."
+              />
+            </label>
+            <label>
+              Monthly price in OKB
+              <input
+                value={subscriptionPrice}
+                onChange={(event) => setSubscriptionPrice(event.target.value)}
+                inputMode="decimal"
+              />
+            </label>
+            <label>
+              Subscriber address
+              <input
+                value={subscriberAddress}
+                onChange={(event) => setSubscriberAddress(event.target.value)}
+                placeholder="0x..."
+              />
+            </label>
+            <div className="button-row">
+              <button type="button" onClick={setPrice}>
+                Set price
+              </button>
+              <button type="button" onClick={subscribeToPundit}>
+                Subscribe
+              </button>
+              <button type="button" onClick={checkSubscription}>
+                Check access
+              </button>
+              <button type="button" onClick={withdrawEarnings}>
+                Withdraw
+              </button>
+            </div>
+          </div>
+
+          <div className="panel">
+            <h2>Accuracy Tracker</h2>
+            <label>
+              Actual result
+              <select value={actualOutcome} onChange={(event) => setActualOutcome(event.target.value)}>
+                {outcomes.map((outcome, index) => (
+                  <option key={outcome} value={index}>
+                    {outcome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Address to inspect
+              <input
+                value={accuracyAddress}
+                onChange={(event) => setAccuracyAddress(event.target.value)}
+                placeholder="0x..."
+              />
+            </label>
+            <div className="button-row">
+              <button type="button" onClick={resolveMatch}>
+                Resolve match
+              </button>
+              <button type="button" onClick={gradePundit}>
+                Grade pundit
+              </button>
+              <button type="button" onClick={loadAccuracy}>
+                Load accuracy
+              </button>
+            </div>
+          </div>
+
+          <div className="panel output-panel">
+            <h2>On-chain Output</h2>
+            <p>{result}</p>
+            {predictions.length > 0 && (
+              <div className="prediction-list">
+                {predictions.map((prediction) => (
+                  <div key={`${prediction.pundit}-${prediction.timestamp.toString()}`}>
+                    <strong>{shortAddress(prediction.pundit)}</strong>
+                    <span>{outcomes[Number(prediction.predictedOutcome)]}</span>
+                    <small>{new Date(Number(prediction.timestamp) * 1000).toLocaleString()}</small>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </section>
     </main>
