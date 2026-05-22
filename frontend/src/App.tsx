@@ -1,7 +1,7 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useEffect, useMemo, useState } from 'react'
 import { isAddress, parseEther } from 'viem'
-import { useAccount, useReadContract, useWriteContract } from 'wagmi'
+import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import {
   CONTRACT_ADDRESSES,
   accuracyTrackerAbi,
@@ -25,6 +25,7 @@ const imageSections = [
 ]
 
 const outcomes = ['Home win', 'Draw', 'Away win']
+const DEMO_OUTCOME = 1
 
 const fixtures = [
   {
@@ -274,25 +275,53 @@ function App() {
   const oneHourFromNow = useMemo(() => BigInt(Math.floor((Date.now() + 60 * 60 * 1000) / 1000)), [])
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
+  const {
+    data: resolveHash,
+    isPending: isResolving,
+    writeContract: writeResolveMatch,
+  } = useWriteContract()
+  const {
+    data: gradeHash,
+    isPending: isAutoGrading,
+    writeContract: writeGradePundit,
+  } = useWriteContract()
   const [isViewingCenterMode, setViewingCenterMode] = useState(false)
   const [activePhase, setActivePhase] = useState<Phase>('groups')
   const [activeDesk, setActiveDesk] = useState<Desk>('predict')
   const [selectedMatchId, setSelectedMatchId] = useState('arg-nga-001')
-  const [predictionOutcome, setPredictionOutcome] = useState(0)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
   const [marketCountdown, setMarketCountdown] = useState(10)
+  const [autoGradedResolveHash, setAutoGradedResolveHash] = useState<`0x${string}` | ''>('')
+  const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
 
   const selectedMatch = fixtures.find((fixture) => fixture.id === selectedMatchId) ?? fixtures[0]
   const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
   const validPundit = isAddress(punditAddress) ? punditAddress : undefined
+  const demoPundit = validPundit ?? address
 
-  const { data: accuracy } = useReadContract({
+  const { data: accuracy, refetch: refetchAccuracy } = useReadContract({
     address: CONTRACT_ADDRESSES.tracker,
     abi: accuracyTrackerAbi,
     functionName: 'getAccuracy',
-    args: validPundit ? [validPundit] : undefined,
-    query: { enabled: Boolean(validPundit) },
+    args: demoPundit ? [demoPundit] : undefined,
+    query: { enabled: Boolean(demoPundit) },
+  })
+
+  const { data: stats, refetch: refetchStats } = useReadContract({
+    address: CONTRACT_ADDRESSES.tracker,
+    abi: accuracyTrackerAbi,
+    functionName: 'stats',
+    args: demoPundit ? [demoPundit] : undefined,
+    query: { enabled: Boolean(demoPundit) },
+  })
+
+  const { isSuccess: resolveConfirmed } = useWaitForTransactionReceipt({
+    hash: resolveHash,
+  })
+
+  const { isSuccess: gradeConfirmed } = useWaitForTransactionReceipt({
+    hash: gradeHash,
   })
 
   useEffect(() => {
@@ -316,7 +345,14 @@ function App() {
 
   useEffect(() => {
     setMarketCountdown(10)
+    setAutoResolvedMatchId('')
   }, [selectedMatchId])
+
+  useEffect(() => {
+    if (address && !punditAddress) {
+      setPunditAddress(address)
+    }
+  }, [address, punditAddress])
 
   useEffect(() => {
     if (marketCountdown <= 0) return
@@ -327,6 +363,55 @@ function App() {
 
     return () => window.clearTimeout(countdownId)
   }, [marketCountdown])
+
+  useEffect(() => {
+    if (!address || marketCountdown !== 0 || autoResolvedMatchId === selectedMatch.id || isResolving) {
+      return
+    }
+
+    setAutoResolvedMatchId(selectedMatch.id)
+    writeResolveMatch({
+      address: CONTRACT_ADDRESSES.tracker,
+      abi: accuracyTrackerAbi,
+      functionName: 'resolveMatch',
+      args: [selectedMatch.id, DEMO_OUTCOME],
+    })
+  }, [
+    address,
+    autoResolvedMatchId,
+    isResolving,
+    marketCountdown,
+    selectedMatch.id,
+    writeResolveMatch,
+  ])
+
+  useEffect(() => {
+    if (!resolveConfirmed || !resolveHash || !demoPundit || autoGradedResolveHash === resolveHash) {
+      return
+    }
+
+    setAutoGradedResolveHash(resolveHash)
+    writeGradePundit({
+      address: CONTRACT_ADDRESSES.tracker,
+      abi: accuracyTrackerAbi,
+      functionName: 'gradePundit',
+      args: [selectedMatch.id, demoPundit],
+    })
+  }, [
+    autoGradedResolveHash,
+    demoPundit,
+    resolveConfirmed,
+    resolveHash,
+    selectedMatch.id,
+    writeGradePundit,
+  ])
+
+  useEffect(() => {
+    if (resolveConfirmed || gradeConfirmed) {
+      void refetchAccuracy()
+      void refetchStats()
+    }
+  }, [gradeConfirmed, refetchAccuracy, refetchStats, resolveConfirmed])
 
   function selectMatch(matchId: string) {
     setSelectedMatchId(matchId)
@@ -349,26 +434,26 @@ function App() {
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
-      args: [selectedMatch.id, predictionOutcome, oneHourFromNow],
+      args: [selectedMatch.id, DEMO_OUTCOME, oneHourFromNow],
     })
   }
 
   function resolveMatch() {
-    writeContract({
+    writeResolveMatch({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [selectedMatch.id, actualOutcome],
+      args: [selectedMatch.id, DEMO_OUTCOME],
     })
   }
 
   function gradePundit() {
-    if (!validPundit) return
-    writeContract({
+    if (!demoPundit) return
+    writeGradePundit({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
-      args: [selectedMatch.id, validPundit],
+      args: [selectedMatch.id, demoPundit],
     })
   }
 
@@ -456,9 +541,16 @@ function App() {
             <div className="hero-stat">
               <span>{marketCountdown === 0 ? 'Market closed' : 'Market closes'}</span>
               <strong>{marketCountdown}s</strong>
+              {marketCountdown === 0 && autoResolvedMatchId === selectedMatch.id && (
+                <small>{isResolving ? 'Oracle resolving automatically...' : 'Auto-oracle triggered'}</small>
+              )}
               {marketCountdown === 0 && (
-                <button type="button" disabled={isPending} onClick={resolveMatch}>
-                  {isPending ? 'Resolving...' : 'Trigger Oracle / Resolve Match'}
+                <button type="button" disabled={isResolving || isAutoGrading} onClick={resolveMatch}>
+                  {isResolving
+                    ? 'Resolving...'
+                    : isAutoGrading
+                      ? 'Updating reputation...'
+                      : 'Trigger Oracle / Resolve Match'}
                 </button>
               )}
             </div>
@@ -516,13 +608,13 @@ function App() {
                 <div className="action-panel">
                   <h2>Submit your call</h2>
                   <p>Selected match ID: <code>{selectedMatch.id}</code></p>
+                  <p>Demo winning pick: <strong>{outcomes[DEMO_OUTCOME]}</strong></p>
                   <div className="outcome-grid">
                     {outcomes.map((outcome, index) => (
                       <button
                         type="button"
-                        className={predictionOutcome === index ? 'is-active' : ''}
+                        className={DEMO_OUTCOME === index ? 'is-active' : ''}
                         key={outcome}
-                        onClick={() => setPredictionOutcome(index)}
                       >
                         {outcome}
                       </button>
@@ -544,9 +636,16 @@ function App() {
                   <div className="reputation-card">
                     <span>Accuracy</span>
                     <strong>{accuracy ? `${Number(accuracy) / 100}%` : '0%'}</strong>
+                    <p>
+                      Wins: {stats ? Number(stats[0]) : 0} / Losses: {stats ? Number(stats[1]) : 0} /
+                      Resolved: {stats ? Number(stats[2]) : 0}
+                    </p>
+                    {resolveConfirmed && <p>Oracle resolved with demo outcome.</p>}
+                    {isAutoGrading && <p>Submitting grading transaction...</p>}
+                    {gradeConfirmed && <p>Reputation refreshed. Winning prediction recorded.</p>}
                     <ExpertBadge team={selectedMatch.home} accuracy={accuracy} />
                   </div>
-                  <button type="button" disabled={!validPundit || isPending} onClick={gradePundit}>
+                  <button type="button" disabled={!demoPundit || isAutoGrading} onClick={gradePundit}>
                     Grade Pundit for Selected Match
                   </button>
                 </div>
@@ -585,8 +684,8 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <button type="button" disabled={isPending} onClick={resolveMatch}>
-                    Resolve {selectedMatch.id}
+                  <button type="button" disabled={isResolving || isAutoGrading} onClick={resolveMatch}>
+                    Resolve {selectedMatch.id} with Demo Outcome
                   </button>
                 </div>
               )}
