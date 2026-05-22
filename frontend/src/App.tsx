@@ -100,6 +100,113 @@ function ExpertBadge({ team, accuracy }: { team: string; accuracy?: bigint }) {
   return <span className="badge">{team} Expert</span>
 }
 
+const premiumPredictions = [
+  {
+    match: 'Argentina vs. Nigeria',
+    pick: 'Draw (1-1)',
+    confidence: '85%',
+    angle: 'Argentina control possession, but Nigeria punish the high line late.',
+  },
+  {
+    match: 'France vs. Japan',
+    pick: 'France win',
+    confidence: '78%',
+    angle: 'France edge the transition battle if Japan chase the second half.',
+  },
+  {
+    match: 'Brazil vs. Ghana',
+    pick: 'Over 2.5 goals',
+    confidence: '81%',
+    angle: 'Both wide channels project as high-volume chance creation zones.',
+  },
+]
+
+function PremiumPredictions({ pundit }: { pundit: `0x${string}` }) {
+  return (
+    <div className="mt-5 rounded-[28px] border border-white/15 bg-white/[0.08] p-5 shadow-2xl shadow-black/25 backdrop-blur-2xl">
+      <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-lime-200">
+            Premium Predictions
+          </p>
+          <h3 className="mt-2 text-2xl font-black leading-none text-[#fbffe8] sm:text-3xl">
+            Alpha room unlocked
+          </h3>
+          <p className="mt-2 text-sm text-white/60">
+            Private card from {shortAddress(pundit)}. These are demo picks styled for the live presentation.
+          </p>
+        </div>
+        <span className="w-fit rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase text-black">
+          Subscriber
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-4 lg:grid-cols-3">
+        {premiumPredictions.map((prediction) => (
+          <article
+            className="rounded-2xl border border-white/12 bg-black/25 p-4 shadow-inner shadow-white/5"
+            key={prediction.match}
+          >
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-white/45">Match</p>
+            <h4 className="mt-2 text-lg font-black text-[#fbffe8]">{prediction.match}</h4>
+            <div className="mt-4 rounded-xl bg-lime-300/12 p-3">
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-lime-200">
+                Pundit Pick
+              </p>
+              <strong className="mt-1 block text-xl text-lime-100">{prediction.pick}</strong>
+            </div>
+            <div className="mt-4 flex items-center justify-between gap-3">
+              <span className="text-sm font-bold text-white/55">Confidence</span>
+              <strong className="rounded-full bg-white/10 px-3 py-1 text-sm text-[#fbffe8]">
+                {prediction.confidence}
+              </strong>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-white/62">{prediction.angle}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function WithdrawEarningsButton() {
+  const { data: hash, error, isPending, isSuccess, writeContract } = useWriteContract()
+
+  return (
+    <div className="mt-5 rounded-[24px] border border-emerald-200/20 bg-emerald-300/[0.08] p-4 backdrop-blur-xl">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-black uppercase tracking-[0.16em] text-emerald-200">
+            Creator Cash-Out
+          </p>
+          <p className="mt-2 text-sm text-white/62">
+            Withdraw earned OKB from your PunditSubscription balance.
+          </p>
+        </div>
+        <button
+          type="button"
+          disabled={isPending}
+          onClick={() =>
+            writeContract({
+              address: CONTRACT_ADDRESSES.subscription,
+              abi: punditSubscriptionAbi,
+              functionName: 'withdrawEarnings',
+            })
+          }
+        >
+          {isPending ? 'Withdrawing...' : 'Withdraw Earnings'}
+        </button>
+      </div>
+      {isSuccess && (
+        <p className="mt-3 text-sm font-bold text-emerald-200">
+          Withdrawal submitted{hash ? `: ${hash.slice(0, 10)}...${hash.slice(-6)}` : '.'}
+        </p>
+      )}
+      {error && <p className="mt-3 text-sm font-bold text-red-200">{error.message}</p>}
+    </div>
+  )
+}
+
 function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
@@ -137,7 +244,7 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
     )
   }
 
-  return <p className="premium-copy">Premium room unlocked for {shortAddress(pundit)}.</p>
+  return <PremiumPredictions pundit={pundit} />
 }
 
 function App() {
@@ -416,6 +523,7 @@ function App() {
                   <button type="button" disabled={isPending} onClick={setSubscriptionPrice}>
                     Set My Price to 0.01 OKB
                   </button>
+                  <WithdrawEarningsButton />
                   <PunditProfile pundit={validPundit} />
                 </div>
               )}
