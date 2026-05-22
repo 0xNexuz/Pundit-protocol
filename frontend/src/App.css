@@ -47,9 +47,7 @@
   position: fixed;
   z-index: 20;
   top: 18px;
-  left: 50%;
-  right: auto;
-  transform: translateX(-50%);
+  right: 24px;
   display: flex;
   gap: 10px;
   align-items: center;
@@ -124,12 +122,13 @@ button:hover {
 }
 
 .image-section[data-reveal] {
+  opacity: 1;
   transform: translateY(60px);
 }
 
 .image-section[data-reveal] .section-image {
-  opacity: 0;
-  filter: blur(14px) saturate(0.75) contrast(0.9);
+  opacity: 1;
+  filter: blur(8px) saturate(0.82) contrast(0.94);
   transform: scale(1.08) translateX(52px) rotate(0.35deg);
   clip-path: inset(0 18% 0 0);
   transition:
@@ -391,6 +390,15 @@ button:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
+.success-copy {
+  border: 1px solid rgba(119, 244, 199, 0.28);
+  border-radius: 16px;
+  background: rgba(119, 244, 199, 0.1);
+  color: #c8ffe8 !important;
+  font-weight: 800;
+  padding: 12px 14px;
+}
+
 .badge {
   width: fit-content;
   border-radius: 999px;
@@ -628,7 +636,6 @@ button:focus-visible,
     left: 12px;
     right: 12px;
     top: 12px;
-    transform: none;
     justify-content: space-between;
     border-radius: 24px;
   }

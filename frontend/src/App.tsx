@@ -276,6 +276,11 @@ function App() {
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
   const {
+    data: predictionHash,
+    isPending: isPredicting,
+    writeContract: writePrediction,
+  } = useWriteContract()
+  const {
     data: resolveHash,
     isPending: isResolving,
     writeContract: writeResolveMatch,
@@ -324,6 +329,10 @@ function App() {
     hash: gradeHash,
   })
 
+  const { isSuccess: predictionConfirmed } = useWaitForTransactionReceipt({
+    hash: predictionHash,
+  })
+
   useEffect(() => {
     const animatedSections = document.querySelectorAll<HTMLElement>('[data-reveal]')
 
@@ -365,7 +374,13 @@ function App() {
   }, [marketCountdown])
 
   useEffect(() => {
-    if (!address || marketCountdown !== 0 || autoResolvedMatchId === selectedMatch.id || isResolving) {
+    if (
+      !address ||
+      !predictionConfirmed ||
+      marketCountdown !== 0 ||
+      autoResolvedMatchId === selectedMatch.id ||
+      isResolving
+    ) {
       return
     }
 
@@ -381,6 +396,7 @@ function App() {
     autoResolvedMatchId,
     isResolving,
     marketCountdown,
+    predictionConfirmed,
     selectedMatch.id,
     writeResolveMatch,
   ])
@@ -430,7 +446,7 @@ function App() {
   }
 
   function submitPrediction() {
-    writeContract({
+    writePrediction({
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
@@ -490,7 +506,7 @@ function App() {
       ) : (
         imageSections.map((section, index) => (
           <section
-            className="image-section reveal-section"
+            className={index === 0 ? 'image-section reveal-section is-visible' : 'image-section reveal-section'}
             key={section.src}
             data-reveal
             data-direction={index % 2 === 0 ? 'right' : 'left'}
@@ -543,6 +559,9 @@ function App() {
               <strong>{marketCountdown}s</strong>
               {marketCountdown === 0 && autoResolvedMatchId === selectedMatch.id && (
                 <small>{isResolving ? 'Oracle resolving automatically...' : 'Auto-oracle triggered'}</small>
+              )}
+              {marketCountdown === 0 && !predictionConfirmed && (
+                <small>Lock the demo prediction to auto-resolve.</small>
               )}
               {marketCountdown === 0 && (
                 <button type="button" disabled={isResolving || isAutoGrading} onClick={resolveMatch}>
@@ -620,9 +639,10 @@ function App() {
                       </button>
                     ))}
                   </div>
-                  <button type="button" disabled={!address || isPending} onClick={submitPrediction}>
-                    Lock Prediction
+                  <button type="button" disabled={!address || isPredicting} onClick={submitPrediction}>
+                    {isPredicting ? 'Locking prediction...' : 'Lock Prediction'}
                   </button>
+                  {predictionConfirmed && <p className="success-copy">Prediction locked. Oracle will resolve automatically when the market closes.</p>}
                 </div>
               )}
 
