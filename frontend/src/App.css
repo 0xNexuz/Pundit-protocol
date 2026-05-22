@@ -5,6 +5,10 @@
   background: #020d09;
 }
 
+.viewing-center {
+  background: #000;
+}
+
 .site-nav {
   position: fixed;
   z-index: 20;
@@ -13,6 +17,7 @@
   display: flex;
   gap: 10px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .site-nav a,
@@ -78,9 +83,9 @@ button:hover {
 
 .image-section[data-reveal] .section-image {
   opacity: 0;
-  filter: blur(12px) saturate(0.85);
-  transform: scale(1.045) translateX(34px);
-  clip-path: inset(0 12% 0 0);
+  filter: blur(14px) saturate(0.75) contrast(0.9);
+  transform: scale(1.08) translateX(52px) rotate(0.35deg);
+  clip-path: inset(0 18% 0 0);
   transition:
     opacity 980ms cubic-bezier(0.22, 1, 0.36, 1),
     filter 980ms cubic-bezier(0.22, 1, 0.36, 1),
@@ -90,8 +95,8 @@ button:hover {
 }
 
 .image-section[data-direction='left'] .section-image {
-  transform: scale(1.045) translateX(-34px);
-  clip-path: inset(0 0 0 12%);
+  transform: scale(1.08) translateX(-52px) rotate(-0.35deg);
+  clip-path: inset(0 0 0 18%);
 }
 
 .image-section.is-visible .section-image {
@@ -111,6 +116,8 @@ button:hover {
 .console-heading {
   width: min(1180px, 100%);
   margin: 0 auto 24px;
+  display: grid;
+  gap: 10px;
 }
 
 .console-heading p {
@@ -180,6 +187,31 @@ label {
   overflow: hidden;
 }
 
+.bracket-grid {
+  width: min(1180px, 100%);
+  margin: 0 auto 16px;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.fixture-phase {
+  border-top: 1px solid rgba(229, 238, 210, 0.12);
+  display: grid;
+  gap: 10px;
+  padding-top: 14px;
+  margin-top: 14px;
+}
+
+.fixture-phase h3 {
+  margin: 0;
+  color: #dfff7f;
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .contract-grid div {
   min-width: 0;
   padding: 16px;
@@ -197,6 +229,31 @@ label {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.paywall,
+.premium-copy,
+.muted-copy {
+  border: 1px solid rgba(229, 238, 210, 0.14);
+  border-radius: 10px;
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px;
+}
+
+.premium-copy {
+  color: #dfff7f;
+  font-weight: 800;
+}
+
+.muted-copy {
+  color: #bcc7a7;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.48;
 }
 
 .panel {
@@ -289,7 +346,8 @@ button:focus-visible,
   }
 
   .contract-grid,
-  .workspace {
+  .workspace,
+  .bracket-grid {
     grid-template-columns: 1fr;
   }
 }
