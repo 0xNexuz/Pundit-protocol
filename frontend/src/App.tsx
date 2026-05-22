@@ -26,6 +26,7 @@ const imageSections = [
 
 const outcomes = ['Home win', 'Draw', 'Away win']
 const DEMO_OUTCOME = 1
+const DEMO_MARKET_SECONDS = 60
 
 const fixtures = [
   {
@@ -296,7 +297,7 @@ function App() {
   const [selectedMatchId, setSelectedMatchId] = useState('arg-nga-001')
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
-  const [marketCountdown, setMarketCountdown] = useState(10)
+  const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
   const [autoGradedResolveHash, setAutoGradedResolveHash] = useState<`0x${string}` | ''>('')
   const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
 
@@ -353,7 +354,7 @@ function App() {
   }, [isViewingCenterMode])
 
   useEffect(() => {
-    setMarketCountdown(10)
+    setMarketCountdown(DEMO_MARKET_SECONDS)
     setAutoResolvedMatchId('')
   }, [selectedMatchId])
 
