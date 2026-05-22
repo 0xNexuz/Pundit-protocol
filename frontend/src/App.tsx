@@ -281,6 +281,7 @@ function App() {
   const [predictionOutcome, setPredictionOutcome] = useState(0)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
+  const [marketCountdown, setMarketCountdown] = useState(10)
 
   const selectedMatch = fixtures.find((fixture) => fixture.id === selectedMatchId) ?? fixtures[0]
   const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
@@ -312,6 +313,20 @@ function App() {
     animatedSections.forEach((section) => observer.observe(section))
     return () => observer.disconnect()
   }, [isViewingCenterMode])
+
+  useEffect(() => {
+    setMarketCountdown(10)
+  }, [selectedMatchId])
+
+  useEffect(() => {
+    if (marketCountdown <= 0) return
+
+    const countdownId = window.setTimeout(() => {
+      setMarketCountdown((current) => Math.max(current - 1, 0))
+    }, 1000)
+
+    return () => window.clearTimeout(countdownId)
+  }, [marketCountdown])
 
   function selectMatch(matchId: string) {
     setSelectedMatchId(matchId)
@@ -439,8 +454,13 @@ function App() {
               <p>{selectedMatch.group} / {selectedMatch.kickoff} / {selectedMatch.venue}</p>
             </div>
             <div className="hero-stat">
-              <span>Market closes</span>
-              <strong>{selectedMatch.marketClose}</strong>
+              <span>{marketCountdown === 0 ? 'Market closed' : 'Market closes'}</span>
+              <strong>{marketCountdown}s</strong>
+              {marketCountdown === 0 && (
+                <button type="button" disabled={isPending} onClick={resolveMatch}>
+                  {isPending ? 'Resolving...' : 'Trigger Oracle / Resolve Match'}
+                </button>
+              )}
             </div>
           </header>
 
