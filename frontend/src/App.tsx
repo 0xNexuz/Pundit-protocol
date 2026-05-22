@@ -14,14 +14,14 @@ type Desk = 'predict' | 'reputation' | 'subscription' | 'admin'
 type Phase = 'groups' | 'knockouts'
 
 const imageSections = [
-  { src: '/images/hero.png', alt: 'Welcome to Pundit Protocol' },
-  { src: '/images/02.png', alt: 'The Gaffer Knows Best' },
-  { src: '/images/03.png', alt: 'Built Different squad cards' },
-  { src: '/images/04.png', alt: 'Match Day is Calling' },
-  { src: '/images/05.png', alt: 'Make Your Predictions' },
-  { src: '/images/06.png', alt: 'Climb the Standings' },
-  { src: '/images/07.png', alt: 'Own Your Reputation' },
-  { src: '/images/08.png', alt: 'Join the Pundit Nation' },
+  { src: '/images/hero.png', alt: 'Welcome to Pundit Protocol', label: 'Enter match room', desk: 'predict' },
+  { src: '/images/02.png', alt: 'The Gaffer Knows Best', label: 'Read pundit signals', desk: 'reputation' },
+  { src: '/images/03.png', alt: 'Built Different squad cards', label: 'Open squad collection', desk: 'subscription' },
+  { src: '/images/04.png', alt: 'Match Day is Calling', label: 'Pick a fixture', desk: 'predict' },
+  { src: '/images/05.png', alt: 'Make Your Predictions', label: 'Submit prediction', desk: 'predict' },
+  { src: '/images/06.png', alt: 'Climb the Standings', label: 'View reputation', desk: 'reputation' },
+  { src: '/images/07.png', alt: 'Own Your Reputation', label: 'Check expert badge', desk: 'reputation' },
+  { src: '/images/08.png', alt: 'Join the Pundit Nation', label: 'Connect wallet', desk: 'wallet' },
 ]
 
 const outcomes = ['Home win', 'Draw', 'Away win']
@@ -188,6 +188,17 @@ function App() {
     setActiveDesk('predict')
   }
 
+  function openDesk(desk: Desk | 'wallet') {
+    if (desk !== 'wallet') {
+      setActiveDesk(desk)
+    }
+
+    document.getElementById('protocol-console')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start',
+    })
+  }
+
   function submitPrediction() {
     writeContract({
       address: CONTRACT_ADDRESSES.registry,
@@ -260,6 +271,31 @@ function App() {
               className="section-image"
               loading={index === 0 ? 'eager' : 'lazy'}
             />
+            <div className="section-hotspot">
+              {section.desk === 'wallet' ? (
+                <ConnectButton.Custom>
+                  {({ account, mounted, openConnectModal }) => (
+                    <button
+                      type="button"
+                      disabled={!mounted}
+                      onClick={() => {
+                        if (account) {
+                          openDesk('subscription')
+                          return
+                        }
+                        openConnectModal()
+                      }}
+                    >
+                      {account ? 'Open member room' : section.label}
+                    </button>
+                  )}
+                </ConnectButton.Custom>
+              ) : (
+                <button type="button" onClick={() => openDesk(section.desk as Desk)}>
+                  {section.label}
+                </button>
+              )}
+            </div>
           </section>
         ))
       )}
@@ -368,7 +404,11 @@ function App() {
 
               {activeDesk === 'subscription' && (
                 <div className="action-panel">
-                  <h2>Pundit pass</h2>
+                  <h2>Squad collection pass</h2>
+                  <p>
+                    Treat the squad cards as access passes: set your pundit price, then let fans unlock
+                    your premium room with an on-chain subscription.
+                  </p>
                   <label>
                     Pundit address
                     <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
