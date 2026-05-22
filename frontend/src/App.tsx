@@ -171,6 +171,7 @@ function PremiumPredictions({ pundit }: { pundit: `0x${string}` }) {
 
 function WithdrawEarningsButton() {
   const { data: hash, error, isPending, isSuccess, writeContract } = useWriteContract()
+  const explorerUrl = hash ? `https://www.okx.com/web3/explorer/xlayer-test/tx/${hash}` : ''
 
   return (
     <div className="mt-5 rounded-[24px] border border-emerald-200/20 bg-emerald-300/[0.08] p-4 backdrop-blur-xl">
@@ -198,9 +199,31 @@ function WithdrawEarningsButton() {
         </button>
       </div>
       {isSuccess && (
-        <p className="mt-3 text-sm font-bold text-emerald-200">
-          Withdrawal submitted{hash ? `: ${hash.slice(0, 10)}...${hash.slice(-6)}` : '.'}
-        </p>
+        <div className="mt-4 rounded-2xl border border-emerald-200/25 bg-emerald-300/15 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-black text-emerald-100">Withdrawal successful</p>
+              <p className="mt-1 text-xs font-bold text-emerald-100/70">
+                Your OKB cash-out transaction was sent to X Layer.
+              </p>
+              {hash && (
+                <code className="mt-3 inline-block rounded-full bg-black/25 px-3 py-1 text-xs text-emerald-100">
+                  {hash.slice(0, 10)}...{hash.slice(-6)}
+                </code>
+              )}
+            </div>
+            {explorerUrl && (
+              <a
+                className="inline-flex min-h-10 items-center justify-center rounded-full border border-emerald-100/30 bg-emerald-100 px-4 text-sm font-black text-black"
+                href={explorerUrl}
+                target="_blank"
+                rel="noreferrer"
+              >
+                View receipt
+              </a>
+            )}
+          </div>
+        </div>
       )}
       {error && <p className="mt-3 text-sm font-bold text-red-200">{error.message}</p>}
     </div>
