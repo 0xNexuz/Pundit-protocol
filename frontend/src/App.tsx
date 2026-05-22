@@ -10,6 +10,9 @@ import {
 } from './protocol'
 import './App.css'
 
+type Desk = 'predict' | 'reputation' | 'subscription' | 'admin'
+type Phase = 'groups' | 'knockouts'
+
 const imageSections = [
   { src: '/images/hero.png', alt: 'Welcome to Pundit Protocol' },
   { src: '/images/02.png', alt: 'The Gaffer Knows Best' },
@@ -23,24 +26,68 @@ const imageSections = [
 
 const outcomes = ['Home win', 'Draw', 'Away win']
 
-const fixtures = {
-  groups: {
-    GroupA: [
-      { id: 'arg-nga-001', home: 'Argentina', away: 'Nigeria' },
-      { id: 'fra-jpn-001', home: 'France', away: 'Japan' },
-    ],
-    GroupB: [
-      { id: 'eng-usa-001', home: 'England', away: 'USA' },
-      { id: 'bra-gha-001', home: 'Brazil', away: 'Ghana' },
-    ],
+const fixtures = [
+  {
+    id: 'arg-nga-001',
+    phase: 'groups',
+    group: 'Group A',
+    home: 'Argentina',
+    away: 'Nigeria',
+    kickoff: 'Today 20:00',
+    venue: 'Lagos Viewing Center',
+    marketClose: '60m',
   },
-  knockouts: {
-    Round16: [{ id: 'r16-001', home: 'Winner Group A', away: 'Runner-up Group B' }],
-    QuarterFinals: [{ id: 'qf-001', home: 'R16 Winner 1', away: 'R16 Winner 2' }],
-    SemiFinals: [{ id: 'sf-001', home: 'QF Winner 1', away: 'QF Winner 2' }],
-    Final: [{ id: 'final-001', home: 'Semi Winner 1', away: 'Semi Winner 2' }],
+  {
+    id: 'fra-jpn-001',
+    phase: 'groups',
+    group: 'Group A',
+    home: 'France',
+    away: 'Japan',
+    kickoff: 'Tomorrow 18:00',
+    venue: 'Paris Desk',
+    marketClose: '24h',
   },
-}
+  {
+    id: 'eng-usa-001',
+    phase: 'groups',
+    group: 'Group B',
+    home: 'England',
+    away: 'USA',
+    kickoff: 'Tomorrow 21:00',
+    venue: 'London Signal Room',
+    marketClose: '27h',
+  },
+  {
+    id: 'bra-gha-001',
+    phase: 'groups',
+    group: 'Group B',
+    home: 'Brazil',
+    away: 'Ghana',
+    kickoff: 'Sat 19:00',
+    venue: 'Accra Watch Party',
+    marketClose: '2d',
+  },
+  {
+    id: 'r16-001',
+    phase: 'knockouts',
+    group: 'Round of 16',
+    home: 'Winner Group A',
+    away: 'Runner-up Group B',
+    kickoff: 'Pending',
+    venue: 'Knockout Board',
+    marketClose: 'Locked',
+  },
+  {
+    id: 'final-001',
+    phase: 'knockouts',
+    group: 'Final',
+    home: 'Semi Winner 1',
+    away: 'Semi Winner 2',
+    kickoff: 'Pending',
+    venue: 'Global Final Desk',
+    marketClose: 'Locked',
+  },
+] as const
 
 function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
@@ -48,47 +95,9 @@ function shortAddress(address: string) {
 
 function ExpertBadge({ team, accuracy }: { team: string; accuracy?: bigint }) {
   const percentage = accuracy ? Number(accuracy) / 100 : 0
-  if (percentage < 75) return null
+  if (percentage < 75) return <span className="badge badge-muted">Badge locked</span>
 
-  return (
-    <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase text-black">
-      {team} Expert
-    </span>
-  )
-}
-
-function TournamentBracket({ onSelectMatch }: { onSelectMatch: (matchId: string) => void }) {
-  return (
-    <div className="bracket-grid">
-      <section className="panel">
-        <h2>Groups</h2>
-        {Object.entries(fixtures.groups).map(([group, matches]) => (
-          <div className="fixture-phase" key={group}>
-            <h3>{group}</h3>
-            {matches.map((match) => (
-              <button type="button" key={match.id} onClick={() => onSelectMatch(match.id)}>
-                {match.home} vs {match.away}
-              </button>
-            ))}
-          </div>
-        ))}
-      </section>
-
-      <section className="panel">
-        <h2>Knockouts</h2>
-        {Object.entries(fixtures.knockouts).map(([phase, matches]) => (
-          <div className="fixture-phase" key={phase}>
-            <h3>{phase.replace(/([A-Z])/g, ' $1').trim()}</h3>
-            {matches.map((match) => (
-              <button type="button" key={match.id} onClick={() => onSelectMatch(match.id)}>
-                {match.home} vs {match.away}
-              </button>
-            ))}
-          </div>
-        ))}
-      </section>
-    </div>
-  )
+  return <span className="badge">{team} Expert</span>
 }
 
 function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
@@ -103,12 +112,12 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
     query: { enabled: Boolean(address && pundit) },
   })
 
-  if (!pundit) return <p className="muted-copy">Enter a valid pundit address.</p>
+  if (!pundit) return <p className="muted-copy">Paste a pundit address to preview the subscription gate.</p>
 
   if (!subscribed) {
     return (
       <div className="paywall">
-        <p>Premium pundit notes are locked.</p>
+        <p>Premium notes for {shortAddress(pundit)} are locked behind the on-chain pass.</p>
         <button
           type="button"
           disabled={isPending}
@@ -122,13 +131,13 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
             })
           }
         >
-          Pay 0.01 OKB
+          Unlock for 0.01 OKB
         </button>
       </div>
     )
   }
 
-  return <p className="premium-copy">Premium predictions unlocked for {shortAddress(pundit)}.</p>
+  return <p className="premium-copy">Premium room unlocked for {shortAddress(pundit)}.</p>
 }
 
 function App() {
@@ -136,11 +145,15 @@ function App() {
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
   const [isViewingCenterMode, setViewingCenterMode] = useState(false)
-  const [matchId, setMatchId] = useState('arg-nga-001')
+  const [activePhase, setActivePhase] = useState<Phase>('groups')
+  const [activeDesk, setActiveDesk] = useState<Desk>('predict')
+  const [selectedMatchId, setSelectedMatchId] = useState('arg-nga-001')
   const [predictionOutcome, setPredictionOutcome] = useState(0)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
 
+  const selectedMatch = fixtures.find((fixture) => fixture.id === selectedMatchId) ?? fixtures[0]
+  const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
   const validPundit = isAddress(punditAddress) ? punditAddress : undefined
 
   const { data: accuracy } = useReadContract({
@@ -161,23 +174,26 @@ function App() {
 
     const observer = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          entry.target.classList.toggle('is-visible', entry.isIntersecting)
-        })
+        entries.forEach((entry) => entry.target.classList.toggle('is-visible', entry.isIntersecting))
       },
-      { rootMargin: '0px 0px -18% 0px', threshold: 0.28 },
+      { rootMargin: '0px 0px -16% 0px', threshold: 0.24 },
     )
 
     animatedSections.forEach((section) => observer.observe(section))
     return () => observer.disconnect()
   }, [isViewingCenterMode])
 
+  function selectMatch(matchId: string) {
+    setSelectedMatchId(matchId)
+    setActiveDesk('predict')
+  }
+
   function submitPrediction() {
     writeContract({
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
-      args: [matchId, predictionOutcome, oneHourFromNow],
+      args: [selectedMatch.id, predictionOutcome, oneHourFromNow],
     })
   }
 
@@ -186,7 +202,7 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [matchId, actualOutcome],
+      args: [selectedMatch.id, actualOutcome],
     })
   }
 
@@ -196,7 +212,7 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
-      args: [matchId, validPundit],
+      args: [selectedMatch.id, validPundit],
     })
   }
 
@@ -212,7 +228,7 @@ function App() {
   return (
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
       <nav className="site-nav">
-        <a href="#protocol-console">Protocol Console</a>
+        <a href="#protocol-console">Open app</a>
         <button type="button" onClick={() => setViewingCenterMode((current) => !current)}>
           {isViewingCenterMode ? 'Visual Mode' : 'Viewing Center'}
         </button>
@@ -220,12 +236,15 @@ function App() {
       </nav>
 
       {isViewingCenterMode ? (
-        <section className="min-h-screen bg-black px-5 py-28 text-white" data-reveal>
-          <h1 className="text-4xl font-black">Pundit Protocol Viewing Center</h1>
-          <p className="mt-3 max-w-2xl text-lg text-zinc-300">
-            Low-bandwidth tournament dashboard. Images, gradients, and decorative motion are removed.
-          </p>
-          <TournamentBracket onSelectMatch={setMatchId} />
+        <section className="viewing-center-shell" data-reveal>
+          <div>
+            <p className="kicker">Low bandwidth mode</p>
+            <h1>Pundit Protocol Viewing Center</h1>
+            <p>Text-first match board with the same live contract actions, minus heavy imagery.</p>
+          </div>
+          <button type="button" onClick={() => setActiveDesk('predict')}>
+            Start with {selectedMatch.home} vs {selectedMatch.away}
+          </button>
         </section>
       ) : (
         imageSections.map((section, index) => (
@@ -246,87 +265,156 @@ function App() {
       )}
 
       <section id="protocol-console" className="console-section" data-reveal>
-        <div className="console-heading">
-          <p>Live on X Layer Testnet</p>
-          <h1>Protocol Console</h1>
-          <ExpertBadge team="Argentina" accuracy={accuracy} />
-        </div>
-
-        <TournamentBracket onSelectMatch={setMatchId} />
-
-        <div className="contract-grid">
-          <div>
-            <span>Registry</span>
-            <code>{CONTRACT_ADDRESSES.registry}</code>
-          </div>
-          <div>
-            <span>Tracker</span>
-            <code>{CONTRACT_ADDRESSES.tracker}</code>
-          </div>
-          <div>
-            <span>Subscription</span>
-            <code>{CONTRACT_ADDRESSES.subscription}</code>
-          </div>
-        </div>
-
-        <div className="workspace">
-          <div className="panel">
-            <h2>Prediction Submission</h2>
-            <label>
-              Match ID
-              <input value={matchId} onChange={(event) => setMatchId(event.target.value)} />
-            </label>
-            <label>
-              Pick
-              <select
-                value={predictionOutcome}
-                onChange={(event) => setPredictionOutcome(Number(event.target.value))}
-              >
-                {outcomes.map((outcome, index) => (
-                  <option key={outcome} value={index}>
-                    {outcome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="button" disabled={!address || isPending} onClick={submitPrediction}>
-              Submit Prediction
-            </button>
-          </div>
-
-          <div className="panel">
-            <h2>Oracle & Reputation</h2>
-            <label>
-              Actual result
-              <select value={actualOutcome} onChange={(event) => setActualOutcome(Number(event.target.value))}>
-                {outcomes.map((outcome, index) => (
-                  <option key={outcome} value={index}>
-                    {outcome}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Pundit address
-              <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
-            </label>
-            <p className="premium-copy">Accuracy: {accuracy ? `${Number(accuracy) / 100}%` : '0%'}</p>
-            <div className="button-row">
-              <button type="button" disabled={isPending} onClick={resolveMatch}>
-                Resolve Match
-              </button>
-              <button type="button" disabled={!validPundit || isPending} onClick={gradePundit}>
-                Grade Pundit
-              </button>
+        <div className="app-dashboard">
+          <header className="dashboard-hero">
+            <div>
+              <p className="kicker">Live on X Layer Testnet</p>
+              <h1>{selectedMatch.home} vs {selectedMatch.away}</h1>
+              <p>{selectedMatch.group} / {selectedMatch.kickoff} / {selectedMatch.venue}</p>
             </div>
+            <div className="hero-stat">
+              <span>Market closes</span>
+              <strong>{selectedMatch.marketClose}</strong>
+            </div>
+          </header>
+
+          <div className="mode-strip" role="tablist" aria-label="Tournament phase">
+            {(['groups', 'knockouts'] as Phase[]).map((phase) => (
+              <button
+                type="button"
+                className={activePhase === phase ? 'is-active' : ''}
+                key={phase}
+                onClick={() => setActivePhase(phase)}
+              >
+                {phase === 'groups' ? 'Groups' : 'Knockouts'}
+              </button>
+            ))}
           </div>
 
-          <div className="panel">
-            <h2>Paywall / Subscription</h2>
-            <button type="button" disabled={isPending} onClick={setSubscriptionPrice}>
-              Set My Price to 0.01 OKB
-            </button>
-            <PunditProfile pundit={validPundit} />
+          <div className="fixture-layout">
+            <aside className="fixture-rail">
+              {visibleFixtures.map((fixture) => (
+                <button
+                  type="button"
+                  className={fixture.id === selectedMatch.id ? 'fixture-card is-selected' : 'fixture-card'}
+                  key={fixture.id}
+                  onClick={() => selectMatch(fixture.id)}
+                >
+                  <span>{fixture.group}</span>
+                  <strong>{fixture.home} vs {fixture.away}</strong>
+                  <small>{fixture.kickoff}</small>
+                </button>
+              ))}
+            </aside>
+
+            <section className="match-room">
+              <div className="desk-tabs" role="tablist" aria-label="Protocol action">
+                {[
+                  ['predict', 'Predict'],
+                  ['reputation', 'Reputation'],
+                  ['subscription', 'Subscribe'],
+                  ['admin', 'Oracle'],
+                ].map(([desk, label]) => (
+                  <button
+                    type="button"
+                    className={activeDesk === desk ? 'is-active' : ''}
+                    key={desk}
+                    onClick={() => setActiveDesk(desk as Desk)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              {activeDesk === 'predict' && (
+                <div className="action-panel">
+                  <h2>Submit your call</h2>
+                  <p>Selected match ID: <code>{selectedMatch.id}</code></p>
+                  <div className="outcome-grid">
+                    {outcomes.map((outcome, index) => (
+                      <button
+                        type="button"
+                        className={predictionOutcome === index ? 'is-active' : ''}
+                        key={outcome}
+                        onClick={() => setPredictionOutcome(index)}
+                      >
+                        {outcome}
+                      </button>
+                    ))}
+                  </div>
+                  <button type="button" disabled={!address || isPending} onClick={submitPrediction}>
+                    Lock Prediction
+                  </button>
+                </div>
+              )}
+
+              {activeDesk === 'reputation' && (
+                <div className="action-panel">
+                  <h2>Reputation room</h2>
+                  <label>
+                    Pundit address
+                    <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
+                  </label>
+                  <div className="reputation-card">
+                    <span>Accuracy</span>
+                    <strong>{accuracy ? `${Number(accuracy) / 100}%` : '0%'}</strong>
+                    <ExpertBadge team={selectedMatch.home} accuracy={accuracy} />
+                  </div>
+                  <button type="button" disabled={!validPundit || isPending} onClick={gradePundit}>
+                    Grade Pundit for Selected Match
+                  </button>
+                </div>
+              )}
+
+              {activeDesk === 'subscription' && (
+                <div className="action-panel">
+                  <h2>Pundit pass</h2>
+                  <label>
+                    Pundit address
+                    <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
+                  </label>
+                  <button type="button" disabled={isPending} onClick={setSubscriptionPrice}>
+                    Set My Price to 0.01 OKB
+                  </button>
+                  <PunditProfile pundit={validPundit} />
+                </div>
+              )}
+
+              {activeDesk === 'admin' && (
+                <div className="action-panel">
+                  <h2>Oracle desk</h2>
+                  <p>Resolve the selected match, then grade pundits from the reputation room.</p>
+                  <label>
+                    Actual result
+                    <select value={actualOutcome} onChange={(event) => setActualOutcome(Number(event.target.value))}>
+                      {outcomes.map((outcome, index) => (
+                        <option key={outcome} value={index}>
+                          {outcome}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <button type="button" disabled={isPending} onClick={resolveMatch}>
+                    Resolve {selectedMatch.id}
+                  </button>
+                </div>
+              )}
+            </section>
+          </div>
+
+          <div className="contract-grid">
+            <div>
+              <span>Registry</span>
+              <code>{CONTRACT_ADDRESSES.registry}</code>
+            </div>
+            <div>
+              <span>Tracker</span>
+              <code>{CONTRACT_ADDRESSES.tracker}</code>
+            </div>
+            <div>
+              <span>Subscription</span>
+              <code>{CONTRACT_ADDRESSES.subscription}</code>
+            </div>
           </div>
         </div>
       </section>

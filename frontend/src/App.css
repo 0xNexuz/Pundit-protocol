@@ -9,6 +9,30 @@
   background: #000;
 }
 
+.viewing-center-shell {
+  min-height: 100vh;
+  display: grid;
+  align-content: center;
+  gap: 28px;
+  padding: 120px min(6vw, 80px);
+  background: #000;
+  color: #fff;
+}
+
+.viewing-center-shell h1 {
+  max-width: 760px;
+  color: #fff;
+  font-size: clamp(40px, 8vw, 92px);
+  line-height: 0.92;
+  margin: 8px 0 18px;
+}
+
+.viewing-center-shell p {
+  max-width: 640px;
+  color: #d4d4d8;
+  font-size: 18px;
+}
+
 .site-nav {
   position: fixed;
   z-index: 20;
@@ -113,6 +137,191 @@ button:hover {
     #020d09;
 }
 
+.app-dashboard {
+  width: min(1180px, 100%);
+  margin: 0 auto;
+}
+
+.dashboard-hero {
+  border: 1px solid rgba(229, 238, 210, 0.16);
+  border-radius: 22px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: end;
+  padding: clamp(24px, 5vw, 48px);
+  background:
+    linear-gradient(135deg, rgba(223, 255, 127, 0.13), transparent 38%),
+    rgba(8, 25, 16, 0.88);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+}
+
+.dashboard-hero h1 {
+  color: #f4f2d8;
+  font-size: clamp(42px, 7vw, 84px);
+  line-height: 0.92;
+  margin: 8px 0 14px;
+}
+
+.dashboard-hero p {
+  color: #cbd7b3;
+}
+
+.kicker {
+  color: #dfff7f;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hero-stat {
+  min-width: 150px;
+  border: 1px solid rgba(229, 238, 210, 0.17);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgba(1, 8, 6, 0.54);
+}
+
+.hero-stat span,
+.reputation-card span {
+  display: block;
+  color: #bcc7a7;
+  font-size: 11px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.hero-stat strong,
+.reputation-card strong {
+  color: #f4f2d8;
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  margin-top: 8px;
+}
+
+.mode-strip,
+.desk-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.mode-strip {
+  margin: 18px 0;
+}
+
+.mode-strip button,
+.desk-tabs button,
+.outcome-grid button {
+  background: rgba(8, 25, 16, 0.7);
+}
+
+.mode-strip button.is-active,
+.desk-tabs button.is-active,
+.outcome-grid button.is-active {
+  border-color: #dfff7f;
+  background: #dfff7f;
+  color: #071009;
+}
+
+.fixture-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.fixture-rail {
+  display: grid;
+  gap: 12px;
+}
+
+.fixture-card {
+  min-height: auto;
+  border-radius: 16px;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  padding: 16px;
+  text-align: left;
+}
+
+.fixture-card span,
+.fixture-card small {
+  color: #bcc7a7;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.fixture-card strong {
+  color: #f4f2d8;
+  font-size: 18px;
+  line-height: 1.15;
+}
+
+.fixture-card.is-selected {
+  border-color: #dfff7f;
+  background: rgba(223, 255, 127, 0.12);
+}
+
+.match-room {
+  border: 1px solid rgba(229, 238, 210, 0.17);
+  border-radius: 22px;
+  min-height: 500px;
+  padding: 18px;
+  background: rgba(8, 25, 16, 0.82);
+}
+
+.action-panel {
+  display: grid;
+  gap: 18px;
+  padding: 24px 4px 4px;
+}
+
+.action-panel h2 {
+  color: #f4f2d8;
+  font-size: clamp(26px, 4vw, 44px);
+  line-height: 1;
+  margin: 0;
+}
+
+.action-panel p {
+  color: #cbd7b3;
+}
+
+.outcome-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.reputation-card {
+  border: 1px solid rgba(229, 238, 210, 0.14);
+  border-radius: 16px;
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  background: rgba(1, 8, 6, 0.56);
+}
+
+.badge {
+  width: fit-content;
+  border-radius: 999px;
+  background: #dfff7f;
+  color: #071009;
+  font-size: 12px;
+  font-weight: 950;
+  padding: 7px 10px;
+  text-transform: uppercase;
+}
+
+.badge-muted {
+  background: rgba(229, 238, 210, 0.12);
+  color: #bcc7a7;
+}
+
 .console-heading {
   width: min(1180px, 100%);
   margin: 0 auto 24px;
@@ -183,7 +392,8 @@ label {
   display: grid;
   gap: 1px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  margin-bottom: 16px;
+  margin-top: 18px;
+  margin-bottom: 0;
   overflow: hidden;
 }
 
@@ -347,7 +557,18 @@ button:focus-visible,
 
   .contract-grid,
   .workspace,
-  .bracket-grid {
+  .bracket-grid,
+  .fixture-layout,
+  .dashboard-hero,
+  .outcome-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .fixture-layout {
+    gap: 14px;
+  }
+
+  .fixture-rail {
     grid-template-columns: 1fr;
   }
 }
