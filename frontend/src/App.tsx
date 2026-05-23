@@ -25,7 +25,6 @@ const imageSections = [
 ]
 
 const outcomes = ['Home win', 'Draw', 'Away win']
-const DEMO_OUTCOME = 1
 const DEMO_MARKET_SECONDS = 60
 const XLAYER_FAUCET_URL = 'https://web3.okx.com/en-us/xlayer/faucet'
 
@@ -296,6 +295,7 @@ function App() {
   const [activePhase, setActivePhase] = useState<Phase>('groups')
   const [activeDesk, setActiveDesk] = useState<Desk>('predict')
   const [selectedMatchId, setSelectedMatchId] = useState('arg-nga-001')
+  const [predictionOutcome, setPredictionOutcome] = useState(1)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
   const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
@@ -391,7 +391,7 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [selectedMatch.id, DEMO_OUTCOME],
+      args: [selectedMatch.id, predictionOutcome],
     })
   }, [
     address,
@@ -399,6 +399,7 @@ function App() {
     isResolving,
     marketCountdown,
     predictionConfirmed,
+    predictionOutcome,
     selectedMatch.id,
     writeResolveMatch,
   ])
@@ -452,16 +453,16 @@ function App() {
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
-      args: [selectedMatch.id, DEMO_OUTCOME, oneHourFromNow],
+      args: [selectedMatch.id, predictionOutcome, oneHourFromNow],
     })
   }
 
-  function resolveMatch() {
+  function resolveMatch(outcome = predictionOutcome) {
     writeResolveMatch({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [selectedMatch.id, DEMO_OUTCOME],
+      args: [selectedMatch.id, outcome],
     })
   }
 
@@ -569,7 +570,7 @@ function App() {
                 <small>Lock the demo prediction to auto-resolve.</small>
               )}
               {marketCountdown === 0 && (
-                <button type="button" disabled={isResolving || isAutoGrading} onClick={resolveMatch}>
+                <button type="button" disabled={isResolving || isAutoGrading} onClick={() => resolveMatch()}>
                   {isResolving
                     ? 'Resolving...'
                     : isAutoGrading
@@ -632,13 +633,14 @@ function App() {
                 <div className="action-panel">
                   <h2>Submit your call</h2>
                   <p>Selected match ID: <code>{selectedMatch.id}</code></p>
-                  <p>Demo winning pick: <strong>{outcomes[DEMO_OUTCOME]}</strong></p>
+                  <p>Selected pick: <strong>{outcomes[predictionOutcome]}</strong></p>
                   <div className="outcome-grid">
                     {outcomes.map((outcome, index) => (
                       <button
                         type="button"
-                        className={DEMO_OUTCOME === index ? 'is-active' : ''}
+                        className={predictionOutcome === index ? 'is-active' : ''}
                         key={outcome}
+                        onClick={() => setPredictionOutcome(index)}
                       >
                         {outcome}
                       </button>
@@ -712,8 +714,8 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <button type="button" disabled={isResolving || isAutoGrading} onClick={resolveMatch}>
-                    Resolve {selectedMatch.id} with Demo Outcome
+                  <button type="button" disabled={isResolving || isAutoGrading} onClick={() => resolveMatch(actualOutcome)}>
+                    Resolve {selectedMatch.id} with Actual Result
                   </button>
                 </div>
               )}
