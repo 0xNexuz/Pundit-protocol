@@ -399,6 +399,28 @@ button:hover {
   padding: 12px 14px;
 }
 
+.faucet-link {
+  width: fit-content;
+  border: 1px solid rgba(223, 255, 127, 0.24);
+  border-radius: 999px;
+  background: rgba(223, 255, 127, 0.09);
+  color: #eaffad;
+  font-size: 13px;
+  font-weight: 900;
+  padding: 11px 14px;
+  text-decoration: none;
+  transition:
+    border-color 180ms ease,
+    background 180ms ease,
+    transform 180ms ease;
+}
+
+.faucet-link:hover {
+  border-color: rgba(223, 255, 127, 0.72);
+  background: rgba(223, 255, 127, 0.16);
+  transform: translateY(-1px);
+}
+
 .badge {
   width: fit-content;
   border-radius: 999px;

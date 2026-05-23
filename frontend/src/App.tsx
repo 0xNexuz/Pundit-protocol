@@ -27,6 +27,7 @@ const imageSections = [
 const outcomes = ['Home win', 'Draw', 'Away win']
 const DEMO_OUTCOME = 1
 const DEMO_MARKET_SECONDS = 60
+const XLAYER_FAUCET_URL = 'https://web3.okx.com/en-us/xlayer/faucet'
 
 const fixtures = [
   {
@@ -487,6 +488,9 @@ function App() {
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
       <nav className="site-nav">
         <a href="#protocol-console">Open app</a>
+        <a href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
+          X Layer Faucet
+        </a>
         <button type="button" onClick={() => setViewingCenterMode((current) => !current)}>
           {isViewingCenterMode ? 'Visual Mode' : 'Viewing Center'}
         </button>
@@ -643,6 +647,9 @@ function App() {
                   <button type="button" disabled={!address || isPredicting} onClick={submitPrediction}>
                     {isPredicting ? 'Locking prediction...' : 'Lock Prediction'}
                   </button>
+                  <a className="faucet-link" href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
+                    Need test OKB for gas? Open X Layer faucet
+                  </a>
                   {predictionConfirmed && <p className="success-copy">Prediction locked. Oracle will resolve automatically when the market closes.</p>}
                 </div>
               )}
