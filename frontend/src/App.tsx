@@ -713,20 +713,11 @@ function App() {
             </section>
           </div>
 
-          <div className="contract-grid">
-            <div>
-              <span>Registry</span>
-              <code>{CONTRACT_ADDRESSES.registry}</code>
-            </div>
-            <div>
-              <span>Tracker</span>
-              <code>{CONTRACT_ADDRESSES.tracker}</code>
-            </div>
-            <div>
-              <span>Subscription</span>
-              <code>{CONTRACT_ADDRESSES.subscription}</code>
-            </div>
-          </div>
+          <footer className="app-footer">
+            <strong>punditprotocol v1.0.0.</strong>
+            <span>buildX hackthon(x cup edition)</span>
+            <small>©2026 all copyrights reserved by pundit protocol</small>
+          </footer>
         </div>
       </section>
     </main>
