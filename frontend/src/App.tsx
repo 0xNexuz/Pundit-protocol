@@ -1,5 +1,5 @@
 import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAddress, parseEther } from 'viem'
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import {
@@ -19,14 +19,30 @@ const imageSections = [
   { src: '/images/03.png', alt: 'Built Different squad cards', label: 'Open squad collection', desk: 'subscription' },
   { src: '/images/04.png', alt: 'Match Day is Calling', label: 'Pick a fixture', desk: 'predict' },
   { src: '/images/05.png', alt: 'Make Your Predictions', label: 'Submit prediction', desk: 'predict' },
-  { src: '/images/06.png', alt: 'Climb the Standings', label: 'View reputation', desk: 'reputation' },
-  { src: '/images/07.png', alt: 'Own Your Reputation', label: 'Check expert badge', desk: 'reputation' },
+  { src: '/images/06.png', alt: 'Climb the Standings', label: 'Open leaderboard', desk: 'leaderboard' },
+  { src: '/images/07.png', alt: 'Own Your Reputation', label: 'Check expert badge', desk: 'leaderboard' },
   { src: '/images/08.png', alt: 'Join the Pundit Nation', label: 'Connect wallet', desk: 'wallet' },
 ]
 
 const outcomes = ['Home win', 'Draw', 'Away win']
 const DEMO_MARKET_SECONDS = 60
 const XLAYER_FAUCET_URL = 'https://web3.okx.com/en-us/xlayer/faucet'
+const deskHashes: Record<Desk, string> = {
+  predict: '#predict',
+  reputation: '#reputation',
+  leaderboard: '#leaderboard',
+  subscription: '#squad',
+  admin: '#oracle',
+}
+
+const hashDesks: Record<string, Desk> = {
+  '#predict': 'predict',
+  '#reputation': 'reputation',
+  '#leaderboard': 'leaderboard',
+  '#squad': 'subscription',
+  '#subscription': 'subscription',
+  '#oracle': 'admin',
+}
 
 const fixtures = [
   {
@@ -273,7 +289,6 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
 }
 
 function App() {
-  const oneHourFromNow = useMemo(() => BigInt(Math.floor((Date.now() + 60 * 60 * 1000) / 1000)), [])
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
   const {
@@ -299,8 +314,9 @@ function App() {
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
   const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
-  const [autoGradedResolveHash, setAutoGradedResolveHash] = useState<`0x${string}` | ''>('')
   const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
+  const autoResolvedMatchRef = useRef('')
+  const autoGradedResolveHashRef = useRef<`0x${string}` | ''>('')
 
   const selectedMatch = fixtures.find((fixture) => fixture.id === selectedMatchId) ?? fixtures[0]
   const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
@@ -368,6 +384,15 @@ function App() {
     ].sort((left, right) => right.accuracy - left.accuracy)
   }, [accuracy, address, aiOutcome, gradeConfirmed, predictionOutcome, stats])
 
+  const scrollToConsole = useCallback((behavior: ScrollBehavior = 'smooth') => {
+    const consoleSection = document.getElementById('protocol-console')
+    consoleSection?.classList.add('is-visible')
+    consoleSection?.scrollIntoView({
+      behavior,
+      block: 'start',
+    })
+  }, [])
+
   useEffect(() => {
     const animatedSections = document.querySelectorAll<HTMLElement>('[data-reveal]')
 
@@ -388,15 +413,19 @@ function App() {
   }, [isViewingCenterMode])
 
   useEffect(() => {
-    setMarketCountdown(DEMO_MARKET_SECONDS)
-    setAutoResolvedMatchId('')
-  }, [selectedMatchId])
+    function applyHashRoute() {
+      const nextDesk = hashDesks[window.location.hash]
+      if (!nextDesk) return
 
-  useEffect(() => {
-    if (address && !punditAddress) {
-      setPunditAddress(address)
+      setActiveDesk(nextDesk)
+      window.setTimeout(() => scrollToConsole('auto'), 0)
+      window.setTimeout(() => scrollToConsole('auto'), 250)
     }
-  }, [address, punditAddress])
+
+    applyHashRoute()
+    window.addEventListener('hashchange', applyHashRoute)
+    return () => window.removeEventListener('hashchange', applyHashRoute)
+  }, [scrollToConsole])
 
   useEffect(() => {
     if (marketCountdown <= 0) return
@@ -413,13 +442,14 @@ function App() {
       !address ||
       !predictionConfirmed ||
       marketCountdown !== 0 ||
-      autoResolvedMatchId === selectedMatch.id ||
+      autoResolvedMatchRef.current === selectedMatch.id ||
       isResolving
     ) {
       return
     }
 
-    setAutoResolvedMatchId(selectedMatch.id)
+    autoResolvedMatchRef.current = selectedMatch.id
+    window.setTimeout(() => setAutoResolvedMatchId(selectedMatch.id), 0)
     writeResolveMatch({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
@@ -428,7 +458,6 @@ function App() {
     })
   }, [
     address,
-    autoResolvedMatchId,
     isResolving,
     marketCountdown,
     predictionConfirmed,
@@ -438,11 +467,11 @@ function App() {
   ])
 
   useEffect(() => {
-    if (!resolveConfirmed || !resolveHash || !demoPundit || autoGradedResolveHash === resolveHash) {
+    if (!resolveConfirmed || !resolveHash || !demoPundit || autoGradedResolveHashRef.current === resolveHash) {
       return
     }
 
-    setAutoGradedResolveHash(resolveHash)
+    autoGradedResolveHashRef.current = resolveHash
     writeGradePundit({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
@@ -450,7 +479,6 @@ function App() {
       args: [selectedMatch.id, demoPundit],
     })
   }, [
-    autoGradedResolveHash,
     demoPundit,
     resolveConfirmed,
     resolveHash,
@@ -467,21 +495,23 @@ function App() {
 
   function selectMatch(matchId: string) {
     setSelectedMatchId(matchId)
+    setMarketCountdown(DEMO_MARKET_SECONDS)
+    autoResolvedMatchRef.current = ''
+    setAutoResolvedMatchId('')
     setActiveDesk('predict')
   }
 
   function openDesk(desk: Desk | 'wallet') {
     if (desk !== 'wallet') {
       setActiveDesk(desk)
+      window.history.replaceState(null, '', deskHashes[desk])
     }
 
-    document.getElementById('protocol-console')?.scrollIntoView({
-      behavior: 'smooth',
-      block: 'start',
-    })
+    scrollToConsole()
   }
 
   function submitPrediction() {
+    const oneHourFromNow = BigInt(Math.floor((Date.now() + 60 * 60 * 1000) / 1000))
     writePrediction({
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
@@ -521,7 +551,10 @@ function App() {
   return (
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
       <nav className="site-nav">
-        <a href="#protocol-console">Open app</a>
+        <a href="#predict" onClick={() => openDesk('predict')}>Open app</a>
+        <button type="button" onClick={() => openDesk('leaderboard')} aria-label="Open leaderboard">
+          Leaderboard
+        </button>
         <a href="#protocol-docs">Docs</a>
         <a href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
           X Layer Faucet
@@ -539,7 +572,7 @@ function App() {
             <h1>Pundit Protocol Viewing Center</h1>
             <p>Text-first match board with the same live contract actions, minus heavy imagery.</p>
           </div>
-          <button type="button" onClick={() => setActiveDesk('predict')}>
+          <button type="button" onClick={() => openDesk('predict')}>
             Start with {selectedMatch.home} vs {selectedMatch.away}
           </button>
         </section>
@@ -550,6 +583,11 @@ function App() {
             key={section.src}
             data-reveal
             data-direction={index % 2 === 0 ? 'right' : 'left'}
+            onClick={() => {
+              if (section.desk !== 'wallet') {
+                openDesk(section.desk as Desk)
+              }
+            }}
           >
             <img
               src={section.src}
@@ -558,13 +596,34 @@ function App() {
               loading={index === 0 ? 'eager' : 'lazy'}
             />
             <div className="section-hotspot">
+              <div className="section-route-strip" aria-label="World Cup routes">
+                <button type="button" onClick={(event) => {
+                  event.stopPropagation()
+                  openDesk('predict')
+                }}>
+                  Predict
+                </button>
+                <button type="button" onClick={(event) => {
+                  event.stopPropagation()
+                  openDesk('leaderboard')
+                }}>
+                  Leaderboard
+                </button>
+                <button type="button" onClick={(event) => {
+                  event.stopPropagation()
+                  openDesk('subscription')
+                }}>
+                  Squad
+                </button>
+              </div>
               {section.desk === 'wallet' ? (
                 <ConnectButton.Custom>
                   {({ account, mounted, openConnectModal }) => (
                     <button
                       type="button"
                       disabled={!mounted}
-                      onClick={() => {
+                      onClick={(event) => {
+                        event.stopPropagation()
                         if (account) {
                           openDesk('subscription')
                           return
@@ -577,7 +636,10 @@ function App() {
                   )}
                 </ConnectButton.Custom>
               ) : (
-                <button type="button" onClick={() => openDesk(section.desk as Desk)}>
+                <button type="button" onClick={(event) => {
+                  event.stopPropagation()
+                  openDesk(section.desk as Desk)
+                }}>
                   {section.label}
                 </button>
               )}

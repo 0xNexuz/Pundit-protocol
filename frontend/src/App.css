@@ -98,6 +98,7 @@ button:hover {
   width: 100%;
   line-height: 0;
   background: #020d09;
+  cursor: pointer;
   overflow: hidden;
 }
 
@@ -157,6 +158,9 @@ button:hover {
   right: clamp(16px, 5vw, 72px);
   bottom: clamp(16px, 5vw, 72px);
   line-height: 1;
+  display: grid;
+  gap: 10px;
+  justify-items: end;
   opacity: 0;
   transform: translateY(18px);
   transition:
@@ -167,6 +171,26 @@ button:hover {
 .image-section.is-visible .section-hotspot {
   opacity: 1;
   transform: translateY(0);
+}
+
+.section-route-strip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: min(520px, calc(100vw - 32px));
+  padding: 8px;
+  border: 1px solid rgba(251, 255, 232, 0.16);
+  border-radius: 999px;
+  background: rgba(2, 13, 9, 0.52);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.section-route-strip button {
+  min-height: 34px;
+  padding: 0 12px;
+  font-size: 12px;
 }
 
 .section-hotspot button {
@@ -899,6 +923,16 @@ button:focus-visible,
     left: 16px;
     right: 16px;
     bottom: 18px;
+    justify-items: stretch;
+  }
+
+  .section-route-strip {
+    border-radius: 20px;
+    justify-content: stretch;
+  }
+
+  .section-route-strip button {
+    flex: 1 1 96px;
   }
 
   .section-hotspot button {
