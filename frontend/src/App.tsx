@@ -10,7 +10,7 @@ import {
 } from './protocol'
 import './App.css'
 
-type Desk = 'predict' | 'reputation' | 'subscription' | 'admin'
+type Desk = 'predict' | 'reputation' | 'leaderboard' | 'subscription' | 'admin'
 type Phase = 'groups' | 'knockouts'
 
 const imageSections = [
@@ -306,6 +306,7 @@ function App() {
   const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
   const validPundit = isAddress(punditAddress) ? punditAddress : undefined
   const demoPundit = validPundit ?? address
+  const aiOutcome = selectedMatch.phase === 'knockouts' ? 0 : (selectedMatch.id.length + selectedMatch.home.length) % outcomes.length
 
   const { data: accuracy, refetch: refetchAccuracy } = useReadContract({
     address: CONTRACT_ADDRESSES.tracker,
@@ -334,6 +335,38 @@ function App() {
   const { isSuccess: predictionConfirmed } = useWaitForTransactionReceipt({
     hash: predictionHash,
   })
+
+  const leaderboardEntries = useMemo(() => {
+    const userAccuracy = accuracy ? Number(accuracy) / 100 : 0
+    const userWins = stats ? Number(stats[0]) : 0
+
+    return [
+      {
+        name: 'Pundit AI',
+        type: 'Computer competitor',
+        accuracy: 86,
+        wins: 14,
+        streak: 5,
+        pick: outcomes[aiOutcome],
+      },
+      {
+        name: address ? shortAddress(address) : 'Connected Pundit',
+        type: 'Wallet competitor',
+        accuracy: userAccuracy,
+        wins: userWins,
+        streak: gradeConfirmed ? 1 : 0,
+        pick: outcomes[predictionOutcome],
+      },
+      {
+        name: 'Lagos Signal Desk',
+        type: 'Demo competitor',
+        accuracy: 78,
+        wins: 9,
+        streak: 3,
+        pick: 'Home win',
+      },
+    ].sort((left, right) => right.accuracy - left.accuracy)
+  }, [accuracy, address, aiOutcome, gradeConfirmed, predictionOutcome, stats])
 
   useEffect(() => {
     const animatedSections = document.querySelectorAll<HTMLElement>('[data-reveal]')
@@ -489,6 +522,7 @@ function App() {
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
       <nav className="site-nav">
         <a href="#protocol-console">Open app</a>
+        <a href="#protocol-docs">Docs</a>
         <a href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
           X Layer Faucet
         </a>
@@ -615,6 +649,7 @@ function App() {
                 {[
                   ['predict', 'Predict'],
                   ['reputation', 'Reputation'],
+                  ['leaderboard', 'Leaderboard'],
                   ['subscription', 'Subscribe'],
                   ['admin', 'Oracle'],
                 ].map(([desk, label]) => (
@@ -681,6 +716,42 @@ function App() {
                 </div>
               )}
 
+              {activeDesk === 'leaderboard' && (
+                <div className="action-panel">
+                  <h2>Leaderboard</h2>
+                  <p>
+                    Rank live pundits against a computer competitor so the demo always has a rival
+                    even before many wallets join.
+                  </p>
+                  <div className="leaderboard-list">
+                    {leaderboardEntries.map((entry, index) => (
+                      <article className={entry.type === 'Computer competitor' ? 'leaderboard-row is-ai' : 'leaderboard-row'} key={entry.name}>
+                        <strong>#{index + 1}</strong>
+                        <div>
+                          <h3>{entry.name}</h3>
+                          <span>{entry.type}</span>
+                        </div>
+                        <div>
+                          <small>Accuracy</small>
+                          <b>{entry.accuracy}%</b>
+                        </div>
+                        <div>
+                          <small>Wins</small>
+                          <b>{entry.wins}</b>
+                        </div>
+                        <div>
+                          <small>Pick</small>
+                          <b>{entry.pick}</b>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => setPredictionOutcome(aiOutcome)}>
+                    Use Pundit AI pick for this match
+                  </button>
+                </div>
+              )}
+
               {activeDesk === 'subscription' && (
                 <div className="action-panel">
                   <h2>Squad collection pass</h2>
@@ -721,6 +792,102 @@ function App() {
               )}
             </section>
           </div>
+
+          <section id="protocol-docs" className="docs-section" data-reveal>
+            <div className="docs-heading">
+              <p className="kicker">Developer docs</p>
+              <h2>Build on Pundit Protocol</h2>
+              <p>
+                A compact integration guide for prediction submission, paid pundit rooms, oracle
+                resolution, and reputation reads on X Layer Testnet.
+              </p>
+            </div>
+
+            <div className="docs-grid">
+              <article className="docs-card">
+                <span>01</span>
+                <h3>Install frontend kit</h3>
+                <p>Use Wagmi, Viem, RainbowKit, and React Query for wallet and contract calls.</p>
+                <pre><code>{`npm install wagmi viem @rainbow-me/rainbowkit @tanstack/react-query`}</code></pre>
+              </article>
+
+              <article className="docs-card">
+                <span>02</span>
+                <h3>Connect X Layer</h3>
+                <p>Point the app to X Layer Testnet only, then wrap your React tree with Wagmi and RainbowKit.</p>
+                <pre><code>{`const xLayerTestnet = {
+  id: 1952,
+  name: 'X Layer Testnet',
+  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testrpc.xlayer.tech'] } },
+}`}</code></pre>
+              </article>
+
+              <article className="docs-card">
+                <span>03</span>
+                <h3>Submit a prediction</h3>
+                <p>Outcome values map to Home win, Draw, and Away win.</p>
+                <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.registry,
+  abi: predictionRegistryAbi,
+  functionName: 'submitPrediction',
+  args: [matchId, selectedOutcome, deadline],
+})`}</code></pre>
+              </article>
+
+              <article className="docs-card">
+                <span>04</span>
+                <h3>Resolve and grade</h3>
+                <p>After the oracle resolves the match, grade the pundit and refetch reputation reads.</p>
+                <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.tracker,
+  abi: accuracyTrackerAbi,
+  functionName: 'resolveMatch',
+  args: [matchId, actualOutcome],
+})`}</code></pre>
+              </article>
+
+              <article className="docs-card">
+                <span>05</span>
+                <h3>Unlock premium rooms</h3>
+                <p>Fans subscribe with 0.01 OKB, then the UI reads isSubscribed before revealing alpha cards.</p>
+                <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.subscription,
+  abi: punditSubscriptionAbi,
+  functionName: 'subscribe',
+  args: [pundit],
+  value: parseEther('0.01'),
+})`}</code></pre>
+              </article>
+
+              <article className="docs-card">
+                <span>06</span>
+                <h3>Fund test wallets</h3>
+                <p>Send users to the official faucet when they need test OKB for gas.</p>
+                <a className="faucet-link" href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
+                  Open X Layer faucet
+                </a>
+              </article>
+            </div>
+
+            <details className="docs-details">
+              <summary>Contract reference</summary>
+              <div className="docs-contracts">
+                <div>
+                  <span>PredictionRegistry</span>
+                  <code>{CONTRACT_ADDRESSES.registry}</code>
+                </div>
+                <div>
+                  <span>AccuracyTracker</span>
+                  <code>{CONTRACT_ADDRESSES.tracker}</code>
+                </div>
+                <div>
+                  <span>PunditSubscription</span>
+                  <code>{CONTRACT_ADDRESSES.subscription}</code>
+                </div>
+              </div>
+            </details>
+          </section>
 
           <footer className="app-footer">
             <strong>punditprotocol v1.0.0.</strong>
