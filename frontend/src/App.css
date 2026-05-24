@@ -609,6 +609,185 @@ button:hover {
   background: rgba(255, 255, 255, 0.06);
 }
 
+.docs-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  background:
+    radial-gradient(circle at 85% 8%, rgba(223, 255, 127, 0.16), transparent 28vw),
+    radial-gradient(circle at 10% 18%, rgba(119, 244, 199, 0.14), transparent 24vw),
+    linear-gradient(180deg, #020d09 0%, #06130d 100%);
+  color: var(--paper);
+}
+
+.docs-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  border-right: 1px solid rgba(251, 255, 232, 0.12);
+  display: grid;
+  align-content: start;
+  gap: 28px;
+  padding: 28px 20px;
+  background: rgba(2, 13, 9, 0.76);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+
+.docs-brand {
+  border: 1px solid rgba(251, 255, 232, 0.16);
+  border-radius: 18px;
+  display: grid;
+  gap: 6px;
+  padding: 16px;
+  color: var(--paper);
+  text-decoration: none;
+}
+
+.docs-brand span {
+  font-size: 18px;
+  font-weight: 950;
+}
+
+.docs-brand small {
+  color: var(--lime);
+  font-weight: 900;
+}
+
+.docs-sidebar nav {
+  display: grid;
+  gap: 8px;
+}
+
+.docs-sidebar nav a {
+  border-radius: 12px;
+  color: rgba(251, 255, 232, 0.68);
+  font-size: 14px;
+  font-weight: 850;
+  padding: 11px 12px;
+  text-decoration: none;
+}
+
+.docs-sidebar nav a:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--paper);
+}
+
+.docs-main {
+  width: min(980px, 100%);
+  padding: 48px clamp(18px, 5vw, 64px) 72px;
+}
+
+.docs-hero {
+  border-bottom: 1px solid rgba(251, 255, 232, 0.12);
+  padding-bottom: 34px;
+}
+
+.docs-hero h1 {
+  max-width: 780px;
+  color: var(--paper);
+  font-size: clamp(46px, 8vw, 88px);
+  line-height: 0.92;
+  margin: 10px 0 18px;
+}
+
+.docs-hero p,
+.docs-block p,
+.docs-flow li {
+  color: rgba(251, 255, 232, 0.72);
+  line-height: 1.65;
+}
+
+.docs-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.docs-actions a {
+  min-height: 42px;
+  border: 1px solid rgba(223, 255, 127, 0.32);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(223, 255, 127, 0.12);
+  color: #eaffad;
+  font-weight: 950;
+  padding: 0 16px;
+  text-decoration: none;
+}
+
+.docs-block {
+  display: grid;
+  gap: 18px;
+  padding: 34px 0;
+  border-bottom: 1px solid rgba(251, 255, 232, 0.1);
+}
+
+.docs-block h2 {
+  color: var(--paper);
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1;
+  margin: 4px 0 10px;
+}
+
+.docs-eyebrow {
+  color: var(--lime) !important;
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.docs-block pre {
+  max-width: 100%;
+  overflow: auto;
+  border: 1px solid rgba(251, 255, 232, 0.12);
+  border-radius: 18px;
+  margin: 0;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.38);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.docs-block code,
+.docs-address-grid code {
+  color: #eaffad;
+  font-size: 13px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+.docs-address-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.docs-address-grid div {
+  min-width: 0;
+  border: 1px solid rgba(251, 255, 232, 0.12);
+  border-radius: 16px;
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.docs-address-grid span {
+  color: var(--lime);
+  font-size: 12px;
+  font-weight: 950;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.docs-flow ol {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 22px;
+}
+
 .badge {
   width: fit-content;
   border-radius: 999px;
@@ -917,6 +1096,25 @@ button:focus-visible,
 
   .leaderboard-row {
     grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .docs-page {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-sidebar {
+    position: static;
+    height: auto;
+    border-right: 0;
+    border-bottom: 1px solid rgba(251, 255, 232, 0.12);
+  }
+
+  .docs-sidebar nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .docs-main {
+    padding: 32px 18px 56px;
   }
 
   .section-hotspot {

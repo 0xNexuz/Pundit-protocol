@@ -288,7 +288,146 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
   return <PremiumPredictions pundit={pundit} />
 }
 
+function PunditDocs() {
+  return (
+    <main className="docs-page">
+      <aside className="docs-sidebar">
+        <a className="docs-brand" href="/">
+          <span>Pundit Protocol</span>
+          <small>Docs v1.0</small>
+        </a>
+        <nav>
+          <a href="#overview">Overview</a>
+          <a href="#quickstart">Quickstart</a>
+          <a href="#contracts">Contracts</a>
+          <a href="#prediction">Prediction API</a>
+          <a href="#reputation">Reputation</a>
+          <a href="#subscriptions">Subscriptions</a>
+          <a href="#demo">Demo Flow</a>
+        </nav>
+      </aside>
+
+      <section className="docs-main">
+        <header id="overview" className="docs-hero">
+          <p className="kicker">Developer documentation</p>
+          <h1>Pundit Protocol API Docs</h1>
+          <p>
+            Integrate World Cup prediction markets, paid pundit rooms, oracle resolution,
+            and reputation reads on X Layer Testnet.
+          </p>
+          <div className="docs-actions">
+            <a href="/#predict">Open app</a>
+            <a href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">Get test OKB</a>
+          </div>
+        </header>
+
+        <section id="quickstart" className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Quickstart</p>
+            <h2>Install the frontend kit</h2>
+            <p>Use Wagmi, Viem, RainbowKit, and React Query for wallet-aware contract calls.</p>
+          </div>
+          <pre><code>{`npm install wagmi viem @rainbow-me/rainbowkit @tanstack/react-query`}</code></pre>
+        </section>
+
+        <section className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Network</p>
+            <h2>Connect to X Layer Testnet</h2>
+            <p>Point your app at chain ID 1952 and use OKB as the native gas token.</p>
+          </div>
+          <pre><code>{`export const xLayerTestnet = {
+  id: 1952,
+  name: 'X Layer Testnet',
+  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
+  rpcUrls: { default: { http: ['https://testrpc.xlayer.tech'] } },
+}`}</code></pre>
+        </section>
+
+        <section id="contracts" className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Contract reference</p>
+            <h2>Deployed addresses</h2>
+            <p>Use these X Layer Testnet contracts when wiring reads and writes.</p>
+          </div>
+          <div className="docs-address-grid">
+            <div><span>PredictionRegistry</span><code>{CONTRACT_ADDRESSES.registry}</code></div>
+            <div><span>AccuracyTracker</span><code>{CONTRACT_ADDRESSES.tracker}</code></div>
+            <div><span>PunditSubscription</span><code>{CONTRACT_ADDRESSES.subscription}</code></div>
+          </div>
+        </section>
+
+        <section id="prediction" className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Write</p>
+            <h2>Submit prediction</h2>
+            <p>Outcome values are 0 for home win, 1 for draw, and 2 for away win.</p>
+          </div>
+          <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.registry,
+  abi: predictionRegistryAbi,
+  functionName: 'submitPrediction',
+  args: [matchId, selectedOutcome, deadline],
+})`}</code></pre>
+        </section>
+
+        <section id="reputation" className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Oracle and reputation</p>
+            <h2>Resolve, grade, and read accuracy</h2>
+            <p>Resolve a match result, grade a pundit, then refetch the accuracy score.</p>
+          </div>
+          <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.tracker,
+  abi: accuracyTrackerAbi,
+  functionName: 'resolveMatch',
+  args: [matchId, actualOutcome],
+})
+
+const { data: accuracy } = useReadContract({
+  address: CONTRACT_ADDRESSES.tracker,
+  abi: accuracyTrackerAbi,
+  functionName: 'getAccuracy',
+  args: [pundit],
+})`}</code></pre>
+        </section>
+
+        <section id="subscriptions" className="docs-block">
+          <div>
+            <p className="docs-eyebrow">Paywall</p>
+            <h2>Subscribe to a pundit</h2>
+            <p>Fans pay 0.01 OKB, then the frontend checks isSubscribed before revealing premium predictions.</p>
+          </div>
+          <pre><code>{`writeContract({
+  address: CONTRACT_ADDRESSES.subscription,
+  abi: punditSubscriptionAbi,
+  functionName: 'subscribe',
+  args: [pundit],
+  value: parseEther('0.01'),
+})`}</code></pre>
+        </section>
+
+        <section id="demo" className="docs-block docs-flow">
+          <div>
+            <p className="docs-eyebrow">Demo flow</p>
+            <h2>World Cup prediction loop</h2>
+            <p>For the hackathon demo: connect wallet, fund with faucet OKB, submit a pick, wait for market close, resolve oracle, and watch reputation update.</p>
+          </div>
+          <ol>
+            <li>Connect wallet on X Layer Testnet.</li>
+            <li>Choose Home win, Draw, or Away win.</li>
+            <li>Submit prediction with Wagmi.</li>
+            <li>Resolve the match from the oracle desk.</li>
+            <li>Grade the pundit and refresh leaderboard/reputation.</li>
+          </ol>
+        </section>
+      </section>
+    </main>
+  )
+}
+
 function App() {
+  const [isDocsPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/docs')
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
   const {
@@ -548,6 +687,10 @@ function App() {
     })
   }
 
+  if (isDocsPage) {
+    return <PunditDocs />
+  }
+
   return (
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
       <nav className="site-nav">
@@ -555,7 +698,7 @@ function App() {
         <button type="button" onClick={() => openDesk('leaderboard')} aria-label="Open leaderboard">
           Leaderboard
         </button>
-        <a href="#protocol-docs">Docs</a>
+        <a href="/docs">Docs</a>
         <a href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
           X Layer Faucet
         </a>
@@ -854,102 +997,6 @@ function App() {
               )}
             </section>
           </div>
-
-          <section id="protocol-docs" className="docs-section" data-reveal>
-            <div className="docs-heading">
-              <p className="kicker">Developer docs</p>
-              <h2>Build on Pundit Protocol</h2>
-              <p>
-                A compact integration guide for prediction submission, paid pundit rooms, oracle
-                resolution, and reputation reads on X Layer Testnet.
-              </p>
-            </div>
-
-            <div className="docs-grid">
-              <article className="docs-card">
-                <span>01</span>
-                <h3>Install frontend kit</h3>
-                <p>Use Wagmi, Viem, RainbowKit, and React Query for wallet and contract calls.</p>
-                <pre><code>{`npm install wagmi viem @rainbow-me/rainbowkit @tanstack/react-query`}</code></pre>
-              </article>
-
-              <article className="docs-card">
-                <span>02</span>
-                <h3>Connect X Layer</h3>
-                <p>Point the app to X Layer Testnet only, then wrap your React tree with Wagmi and RainbowKit.</p>
-                <pre><code>{`const xLayerTestnet = {
-  id: 1952,
-  name: 'X Layer Testnet',
-  nativeCurrency: { name: 'OKB', symbol: 'OKB', decimals: 18 },
-  rpcUrls: { default: { http: ['https://testrpc.xlayer.tech'] } },
-}`}</code></pre>
-              </article>
-
-              <article className="docs-card">
-                <span>03</span>
-                <h3>Submit a prediction</h3>
-                <p>Outcome values map to Home win, Draw, and Away win.</p>
-                <pre><code>{`writeContract({
-  address: CONTRACT_ADDRESSES.registry,
-  abi: predictionRegistryAbi,
-  functionName: 'submitPrediction',
-  args: [matchId, selectedOutcome, deadline],
-})`}</code></pre>
-              </article>
-
-              <article className="docs-card">
-                <span>04</span>
-                <h3>Resolve and grade</h3>
-                <p>After the oracle resolves the match, grade the pundit and refetch reputation reads.</p>
-                <pre><code>{`writeContract({
-  address: CONTRACT_ADDRESSES.tracker,
-  abi: accuracyTrackerAbi,
-  functionName: 'resolveMatch',
-  args: [matchId, actualOutcome],
-})`}</code></pre>
-              </article>
-
-              <article className="docs-card">
-                <span>05</span>
-                <h3>Unlock premium rooms</h3>
-                <p>Fans subscribe with 0.01 OKB, then the UI reads isSubscribed before revealing alpha cards.</p>
-                <pre><code>{`writeContract({
-  address: CONTRACT_ADDRESSES.subscription,
-  abi: punditSubscriptionAbi,
-  functionName: 'subscribe',
-  args: [pundit],
-  value: parseEther('0.01'),
-})`}</code></pre>
-              </article>
-
-              <article className="docs-card">
-                <span>06</span>
-                <h3>Fund test wallets</h3>
-                <p>Send users to the official faucet when they need test OKB for gas.</p>
-                <a className="faucet-link" href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
-                  Open X Layer faucet
-                </a>
-              </article>
-            </div>
-
-            <details className="docs-details">
-              <summary>Contract reference</summary>
-              <div className="docs-contracts">
-                <div>
-                  <span>PredictionRegistry</span>
-                  <code>{CONTRACT_ADDRESSES.registry}</code>
-                </div>
-                <div>
-                  <span>AccuracyTracker</span>
-                  <code>{CONTRACT_ADDRESSES.tracker}</code>
-                </div>
-                <div>
-                  <span>PunditSubscription</span>
-                  <code>{CONTRACT_ADDRESSES.subscription}</code>
-                </div>
-              </div>
-            </details>
-          </section>
 
           <footer className="app-footer">
             <strong>punditprotocol v1.0.0.</strong>
