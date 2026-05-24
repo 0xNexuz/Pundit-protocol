@@ -632,6 +632,17 @@ function App() {
     }
   }, [gradeConfirmed, refetchAccuracy, refetchStats, resolveConfirmed])
 
+  useEffect(() => {
+    if (!demoPundit) return
+
+    const refreshId = window.setInterval(() => {
+      void refetchAccuracy()
+      void refetchStats()
+    }, 12000)
+
+    return () => window.clearInterval(refreshId)
+  }, [demoPundit, refetchAccuracy, refetchStats])
+
   function selectMatch(matchId: string) {
     setSelectedMatchId(matchId)
     setMarketCountdown(DEMO_MARKET_SECONDS)
@@ -899,9 +910,28 @@ function App() {
               {activeDesk === 'reputation' && (
                 <div className="action-panel">
                   <h2>Reputation room</h2>
+                  <div className="connected-reputation">
+                    <div>
+                      <span>Tracking</span>
+                      <strong>{demoPundit ? shortAddress(demoPundit) : 'Connect wallet'}</strong>
+                    </div>
+                    <div>
+                      <span>Auto refresh</span>
+                      <strong>{demoPundit ? 'Every 12s' : 'Paused'}</strong>
+                    </div>
+                    {address && (
+                      <button type="button" onClick={() => setPunditAddress(address)}>
+                        Use my wallet
+                      </button>
+                    )}
+                  </div>
                   <label>
                     Pundit address
-                    <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
+                    <input
+                      value={punditAddress}
+                      placeholder={address ? address : 'Paste a pundit wallet address'}
+                      onChange={(event) => setPunditAddress(event.target.value)}
+                    />
                   </label>
                   <div className="reputation-card">
                     <span>Accuracy</span>
@@ -928,6 +958,22 @@ function App() {
                     Rank live pundits against a computer competitor so the demo always has a rival
                     even before many wallets join.
                   </p>
+                  <div className="connected-reputation">
+                    <div>
+                      <span>Live reads</span>
+                      <strong>{demoPundit ? shortAddress(demoPundit) : 'Connect wallet'}</strong>
+                    </div>
+                    <div>
+                      <span>Refresh cycle</span>
+                      <strong>12s</strong>
+                    </div>
+                    <button type="button" onClick={() => {
+                      void refetchAccuracy()
+                      void refetchStats()
+                    }}>
+                      Refresh now
+                    </button>
+                  </div>
                   <div className="leaderboard-list">
                     {leaderboardEntries.map((entry, index) => (
                       <article className={entry.type === 'Computer competitor' ? 'leaderboard-row is-ai' : 'leaderboard-row'} key={entry.name}>
