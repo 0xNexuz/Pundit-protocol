@@ -139,7 +139,13 @@ const premiumPredictions = [
   },
 ]
 
-function PremiumPredictions({ pundit }: { pundit: `0x${string}` }) {
+function PremiumPredictions({
+  pundit,
+  onViewReputation,
+}: {
+  pundit: `0x${string}`
+  onViewReputation: (pundit: `0x${string}`) => void
+}) {
   return (
     <div className="mt-5 rounded-[28px] border border-white/15 bg-white/[0.08] p-5 shadow-2xl shadow-black/25 backdrop-blur-2xl">
       <div className="flex flex-col gap-3 border-b border-white/10 pb-5 sm:flex-row sm:items-end sm:justify-between">
@@ -183,6 +189,14 @@ function PremiumPredictions({ pundit }: { pundit: `0x${string}` }) {
           </article>
         ))}
       </div>
+
+      <button
+        type="button"
+        className="mt-5 min-h-12 rounded-full border border-lime-200/30 bg-lime-300 px-5 text-sm font-black uppercase tracking-[0.12em] text-black shadow-xl shadow-lime-950/25 transition hover:-translate-y-0.5 hover:bg-[#fbffe8]"
+        onClick={() => onViewReputation(pundit)}
+      >
+        Check this pundit's reputation
+      </button>
     </div>
   )
 }
@@ -248,7 +262,13 @@ function WithdrawEarningsButton() {
   )
 }
 
-function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
+function PunditProfile({
+  pundit,
+  onViewReputation,
+}: {
+  pundit: `0x${string}` | undefined
+  onViewReputation: (pundit: `0x${string}`) => void
+}) {
   const { address } = useAccount()
   const { writeContract, isPending } = useWriteContract()
 
@@ -285,7 +305,7 @@ function PunditProfile({ pundit }: { pundit: `0x${string}` | undefined }) {
     )
   }
 
-  return <PremiumPredictions pundit={pundit} />
+  return <PremiumPredictions pundit={pundit} onViewReputation={onViewReputation} />
 }
 
 function PunditDocs() {
@@ -1018,7 +1038,13 @@ function App() {
                     Set My Price to 0.01 OKB
                   </button>
                   <WithdrawEarningsButton />
-                  <PunditProfile pundit={validPundit} />
+                  <PunditProfile
+                    pundit={validPundit}
+                    onViewReputation={(targetPundit) => {
+                      setPunditAddress(targetPundit)
+                      openDesk('reputation')
+                    }}
+                  />
                 </div>
               )}
 
