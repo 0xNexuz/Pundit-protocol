@@ -1,4 +1,4 @@
-import { defineChain, parseAbi } from 'viem'
+import { defineChain, isAddress, parseAbi } from 'viem'
 
 export const xLayerTestnet = defineChain({
   id: 1952,
@@ -22,11 +22,27 @@ export const xLayerTestnet = defineChain({
   testnet: true,
 })
 
+const zeroAddress = '0x0000000000000000000000000000000000000000'
+
+function envAddress(value: string | undefined, fallback: `0x${string}`): `0x${string}` {
+  return value && isAddress(value) ? value : fallback
+}
+
 export const CONTRACT_ADDRESSES = {
-  registry: '0x6FB454e649376482AF54b1d7B4E2615C6b853fC4',
-  tracker: '0xAaA41edfd73A45D734bF13264cBe7413c611d2f7',
-  subscription: '0x7b0d4E922916AEa5cDE60f93b07920168DC18Bb9',
+  userRegistry: envAddress(import.meta.env.VITE_USER_REGISTRY_ADDRESS, zeroAddress),
+  registry: envAddress(import.meta.env.VITE_PREDICTION_REGISTRY_ADDRESS, '0x6FB454e649376482AF54b1d7B4E2615C6b853fC4'),
+  tracker: envAddress(import.meta.env.VITE_ACCURACY_ADDRESS, '0xAaA41edfd73A45D734bF13264cBe7413c611d2f7'),
+  subscription: envAddress(import.meta.env.VITE_SUBSCRIPTION_ADDRESS, '0x7b0d4E922916AEa5cDE60f93b07920168DC18Bb9'),
 } as const
+
+export const hasUserRegistry = CONTRACT_ADDRESSES.userRegistry !== zeroAddress
+
+export const userRegistryAbi = parseAbi([
+  'function register(string _username)',
+  'function hasRegistered(address _user) view returns (bool)',
+  'function getUsername(address _user) view returns (string)',
+  'event UserRegistered(address indexed user, string username)',
+])
 
 export const predictionRegistryAbi = parseAbi([
   'function submitPrediction(string _matchId, uint8 _predictedOutcome, uint256 _kickoffTime)',

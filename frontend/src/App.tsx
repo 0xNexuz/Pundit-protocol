@@ -1,12 +1,15 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit'
+import { ConnectButton, useConnectModal } from '@rainbow-me/rainbowkit'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAddress, parseEther } from 'viem'
 import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import PunditHomeDashboard from './components/PunditHomeDashboard'
 import {
   CONTRACT_ADDRESSES,
   accuracyTrackerAbi,
+  hasUserRegistry,
   predictionRegistryAbi,
   punditSubscriptionAbi,
+  userRegistryAbi,
 } from './protocol'
 import './App.css'
 
@@ -111,6 +114,19 @@ function shortAddress(address: string) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`
 }
 
+function UsernameLabel({ address, fallback = 'Connect wallet' }: { address?: `0x${string}`; fallback?: string }) {
+  const { data: username } = useReadContract({
+    address: CONTRACT_ADDRESSES.userRegistry,
+    abi: userRegistryAbi,
+    functionName: 'getUsername',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address && hasUserRegistry) },
+  })
+
+  if (!address) return <>{fallback}</>
+  return <>{username || shortAddress(address)}</>
+}
+
 function ExpertBadge({ team, accuracy }: { team: string; accuracy?: bigint }) {
   const percentage = accuracy ? Number(accuracy) / 100 : 0
   if (percentage < 75) return <span className="badge badge-muted">Badge locked</span>
@@ -157,7 +173,7 @@ function PremiumPredictions({
             Alpha room unlocked
           </h3>
           <p className="mt-2 text-sm text-white/60">
-            Private card from {shortAddress(pundit)}. These are demo picks styled for the live presentation.
+            Private card from <UsernameLabel address={pundit} />. These are demo picks styled for the live presentation.
           </p>
         </div>
         <span className="w-fit rounded-full bg-lime-300 px-3 py-1 text-xs font-black uppercase text-black">
@@ -285,7 +301,7 @@ function PunditProfile({
   if (!subscribed) {
     return (
       <div className="paywall">
-        <p>Premium notes for {shortAddress(pundit)} are locked behind the on-chain pass.</p>
+        <p>Premium notes for <UsernameLabel address={pundit} /> are locked behind the on-chain pass.</p>
         <button
           type="button"
           disabled={isPending}
@@ -371,6 +387,7 @@ function PunditDocs() {
             <p>Use these X Layer Testnet contracts when wiring reads and writes.</p>
           </div>
           <div className="docs-address-grid">
+            <div><span>UserRegistry</span><code>{CONTRACT_ADDRESSES.userRegistry}</code></div>
             <div><span>PredictionRegistry</span><code>{CONTRACT_ADDRESSES.registry}</code></div>
             <div><span>AccuracyTracker</span><code>{CONTRACT_ADDRESSES.tracker}</code></div>
             <div><span>PunditSubscription</span><code>{CONTRACT_ADDRESSES.subscription}</code></div>
@@ -446,9 +463,70 @@ const { data: accuracy } = useReadContract({
   )
 }
 
+function UsernameModal({ onRegistered }: { onRegistered: () => void }) {
+  const [username, setUsername] = useState('')
+  const {
+    data: registrationHash,
+    error,
+    isPending,
+    writeContract: writeRegistration,
+  } = useWriteContract()
+  const { isSuccess } = useWaitForTransactionReceipt({
+    hash: registrationHash,
+  })
+  const isValidUsername = /^[A-Za-z0-9_]{3,24}$/.test(username)
+
+  useEffect(() => {
+    if (isSuccess) onRegistered()
+  }, [isSuccess, onRegistered])
+
+  return (
+    <div className="username-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="username-title">
+      <section className="username-modal">
+        <p className="kicker">Create your pundit identity</p>
+        <h2 id="username-title">Choose a username</h2>
+        <p>
+          This name is saved on-chain and shown across predictions, subscriptions,
+          reputation, and the leaderboard instead of your wallet address.
+        </p>
+        <label>
+          Username
+          <input
+            autoFocus
+            maxLength={24}
+            placeholder="e.g. LagosOracle"
+            value={username}
+            onChange={(event) => setUsername(event.target.value.trim())}
+          />
+        </label>
+        <small>Use 3-24 letters, numbers, or underscores.</small>
+        <button
+          type="button"
+          disabled={!isValidUsername || isPending || !hasUserRegistry}
+          onClick={() =>
+            writeRegistration({
+              address: CONTRACT_ADDRESSES.userRegistry,
+              abi: userRegistryAbi,
+              functionName: 'register',
+              args: [username],
+            })
+          }
+        >
+          {isPending ? 'Registering...' : 'Register username'}
+        </button>
+        {!hasUserRegistry && (
+          <p className="error-copy">Add VITE_USER_REGISTRY_ADDRESS after deploying UserRegistry.</p>
+        )}
+        {error && <p className="error-copy">{error.message}</p>}
+      </section>
+    </div>
+  )
+}
+
 function App() {
   const [isDocsPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/docs')
   const { address } = useAccount()
+  const { openConnectModal } = useConnectModal()
   const { writeContract, isPending } = useWriteContract()
   const {
     data: predictionHash,
@@ -472,6 +550,7 @@ function App() {
   const [predictionOutcome, setPredictionOutcome] = useState(1)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
+  const [hasEnteredApp, setHasEnteredApp] = useState(() => Boolean(window.location.hash))
   const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
   const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
   const autoResolvedMatchRef = useRef('')
@@ -482,6 +561,30 @@ function App() {
   const validPundit = isAddress(punditAddress) ? punditAddress : undefined
   const demoPundit = validPundit ?? address
   const aiOutcome = selectedMatch.phase === 'knockouts' ? 0 : (selectedMatch.id.length + selectedMatch.home.length) % outcomes.length
+
+  const {
+    data: hasRegistered,
+    refetch: refetchRegistration,
+  } = useReadContract({
+    address: CONTRACT_ADDRESSES.userRegistry,
+    abi: userRegistryAbi,
+    functionName: 'hasRegistered',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address && hasUserRegistry) },
+  })
+
+  const {
+    data: registeredUsername,
+    refetch: refetchUsername,
+  } = useReadContract({
+    address: CONTRACT_ADDRESSES.userRegistry,
+    abi: userRegistryAbi,
+    functionName: 'getUsername',
+    args: address ? [address] : undefined,
+    query: { enabled: Boolean(address && hasRegistered && hasUserRegistry) },
+  })
+
+  const userDisplayName = registeredUsername || (address ? shortAddress(address) : 'Connected Pundit')
 
   const { data: accuracy, refetch: refetchAccuracy } = useReadContract({
     address: CONTRACT_ADDRESSES.tracker,
@@ -517,7 +620,7 @@ function App() {
 
     return [
       {
-        name: 'Pundit AI',
+        name: 'Pundit AI Coach',
         type: 'Computer competitor',
         accuracy: 86,
         wins: 14,
@@ -525,7 +628,7 @@ function App() {
         pick: outcomes[aiOutcome],
       },
       {
-        name: address ? shortAddress(address) : 'Connected Pundit',
+        name: userDisplayName,
         type: 'Wallet competitor',
         accuracy: userAccuracy,
         wins: userWins,
@@ -541,7 +644,7 @@ function App() {
         pick: 'Home win',
       },
     ].sort((left, right) => right.accuracy - left.accuracy)
-  }, [accuracy, address, aiOutcome, gradeConfirmed, predictionOutcome, stats])
+  }, [accuracy, aiOutcome, gradeConfirmed, predictionOutcome, stats, userDisplayName])
 
   const scrollToConsole = useCallback((behavior: ScrollBehavior = 'smooth') => {
     const consoleSection = document.getElementById('protocol-console')
@@ -576,6 +679,7 @@ function App() {
       const nextDesk = hashDesks[window.location.hash]
       if (!nextDesk) return
 
+      setHasEnteredApp(true)
       setActiveDesk(nextDesk)
       window.setTimeout(() => scrollToConsole('auto'), 0)
       window.setTimeout(() => scrollToConsole('auto'), 250)
@@ -585,6 +689,10 @@ function App() {
     window.addEventListener('hashchange', applyHashRoute)
     return () => window.removeEventListener('hashchange', applyHashRoute)
   }, [scrollToConsole])
+
+  useEffect(() => {
+    if (hasRegistered) void refetchUsername()
+  }, [hasRegistered, refetchUsername])
 
   useEffect(() => {
     if (marketCountdown <= 0) return
@@ -718,12 +826,39 @@ function App() {
     })
   }
 
+  const shouldShowUsernameModal = Boolean(address && hasUserRegistry && hasRegistered === false)
+  const usernameModal = shouldShowUsernameModal ? (
+    <UsernameModal
+      onRegistered={() => {
+        void refetchRegistration()
+        void refetchUsername()
+      }}
+    />
+  ) : null
+
   if (isDocsPage) {
     return <PunditDocs />
   }
 
+  if (!hasEnteredApp) {
+    return (
+      <>
+        <PunditHomeDashboard
+          walletAddress={address}
+          onConnect={() => openConnectModal?.()}
+          onEnter={() => {
+            setHasEnteredApp(true)
+            window.setTimeout(() => scrollToConsole('auto'), 0)
+          }}
+        />
+        {usernameModal}
+      </>
+    )
+  }
+
   return (
     <main className={isViewingCenterMode ? 'site-frame viewing-center' : 'site-frame'}>
+      {usernameModal}
       <nav className="site-nav">
         <a href="#predict" onClick={() => openDesk('predict')}>Open app</a>
         <button type="button" onClick={() => openDesk('leaderboard')} aria-label="Open leaderboard">
@@ -736,7 +871,8 @@ function App() {
         <button type="button" onClick={() => setViewingCenterMode((current) => !current)}>
           {isViewingCenterMode ? 'Visual Mode' : 'Viewing Center'}
         </button>
-        <ConnectButton chainStatus="name" accountStatus="address" showBalance={false} />
+        {address && <span className="nav-username">{userDisplayName}</span>}
+        <ConnectButton chainStatus="name" accountStatus="avatar" showBalance={false} />
       </nav>
 
       {isViewingCenterMode ? (
@@ -933,7 +1069,7 @@ function App() {
                   <div className="connected-reputation">
                     <div>
                       <span>Tracking</span>
-                      <strong>{demoPundit ? shortAddress(demoPundit) : 'Connect wallet'}</strong>
+                      <strong><UsernameLabel address={demoPundit} /></strong>
                     </div>
                     <div>
                       <span>Auto refresh</span>
@@ -981,7 +1117,7 @@ function App() {
                   <div className="connected-reputation">
                     <div>
                       <span>Live reads</span>
-                      <strong>{demoPundit ? shortAddress(demoPundit) : 'Connect wallet'}</strong>
+                      <strong><UsernameLabel address={demoPundit} /></strong>
                     </div>
                     <div>
                       <span>Refresh cycle</span>

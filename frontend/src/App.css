@@ -19,6 +19,192 @@
   background: #000;
 }
 
+.home-dashboard {
+  --lime: #dfff7f;
+  --mint: #77f4c7;
+  --ink: #06100c;
+  --paper: #fbffe8;
+  min-height: 100vh;
+  display: grid;
+  align-items: center;
+  padding: clamp(22px, 4vw, 64px);
+  color: var(--paper);
+  background:
+    linear-gradient(90deg, rgba(2, 13, 9, 0.22), rgba(2, 13, 9, 0.88)),
+    url('/images/hero.png') center / cover,
+    #020d09;
+}
+
+.home-shell {
+  width: min(1160px, 100%);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.7fr);
+  gap: clamp(24px, 5vw, 72px);
+  align-items: center;
+}
+
+.home-copy h1 {
+  max-width: 720px;
+  margin: 8px 0 18px;
+  color: var(--paper);
+  font-size: clamp(48px, 10vw, 132px);
+  line-height: 0.86;
+}
+
+.home-copy p {
+  max-width: 640px;
+  color: rgba(251, 255, 232, 0.78);
+  font-size: clamp(17px, 2vw, 22px);
+  line-height: 1.55;
+}
+
+.home-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.home-actions button {
+  min-height: 52px;
+  border-color: rgba(251, 255, 232, 0.26);
+  background: linear-gradient(135deg, rgba(223, 255, 127, 0.96), rgba(119, 244, 199, 0.9));
+  color: var(--ink);
+  padding-inline: 22px;
+  box-shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+}
+
+.home-actions button.is-secondary {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--paper);
+}
+
+.home-glass-card {
+  border: 1px solid rgba(251, 255, 232, 0.22);
+  border-radius: 28px;
+  padding: clamp(18px, 3vw, 28px);
+  background: rgba(2, 13, 9, 0.62);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    0 28px 90px rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(24px) saturate(1.35);
+}
+
+.home-card-header,
+.home-wallet-pill {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid rgba(251, 255, 232, 0.14);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.home-card-header span,
+.home-wallet-pill span {
+  color: rgba(251, 255, 232, 0.58);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.home-card-header strong,
+.home-wallet-pill strong {
+  color: var(--paper);
+  overflow-wrap: anywhere;
+}
+
+.home-scoreboard {
+  margin: 16px 0;
+  border-radius: 22px;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(223, 255, 127, 0.24), transparent 46%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.home-scoreboard div {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  color: var(--paper);
+  font-size: clamp(28px, 5vw, 54px);
+  font-weight: 1000;
+}
+
+.home-scoreboard strong {
+  color: var(--mint);
+  font-size: 18px;
+}
+
+.home-scoreboard p {
+  margin: 18px 0 0;
+  color: rgba(251, 255, 232, 0.66);
+  line-height: 1.55;
+}
+
+.nav-username {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(223, 255, 127, 0.28);
+  border-radius: 999px;
+  padding: 0 14px;
+  background: rgba(223, 255, 127, 0.12);
+  color: var(--paper);
+  font: 900 13px/1 var(--sans);
+}
+
+.username-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(0, 0, 0, 0.62);
+  backdrop-filter: blur(18px);
+}
+
+.username-modal {
+  width: min(460px, 100%);
+  border: 1px solid rgba(251, 255, 232, 0.18);
+  border-radius: 28px;
+  padding: 26px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.055)),
+    #06100c;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.44);
+  color: var(--paper);
+}
+
+.username-modal h2 {
+  margin: 8px 0 10px;
+  color: var(--paper);
+  font-size: clamp(28px, 6vw, 44px);
+}
+
+.username-modal p,
+.username-modal small {
+  color: rgba(251, 255, 232, 0.68);
+  line-height: 1.55;
+}
+
+.username-modal button {
+  width: 100%;
+  margin-top: 16px;
+  background: linear-gradient(135deg, rgba(223, 255, 127, 0.96), rgba(119, 244, 199, 0.9));
+  color: var(--ink);
+}
+
+.error-copy {
+  color: #fecaca !important;
+  overflow-wrap: anywhere;
+}
+
 .viewing-center-shell {
   min-height: 100vh;
   display: grid;
@@ -1071,6 +1257,30 @@ button:focus-visible,
 }
 
 @media (max-width: 820px) {
+  .home-dashboard {
+    align-items: end;
+    min-height: 100svh;
+    padding: 96px 16px 22px;
+    background:
+      linear-gradient(180deg, rgba(2, 13, 9, 0.12), rgba(2, 13, 9, 0.94) 54%),
+      url('/images/hero.png') center top / cover,
+      #020d09;
+  }
+
+  .home-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .home-actions,
+  .home-actions button {
+    width: 100%;
+  }
+
+  .home-card-header,
+  .home-wallet-pill {
+    flex-direction: column;
+  }
+
   .site-nav {
     left: 12px;
     right: 12px;
