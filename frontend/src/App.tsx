@@ -581,9 +581,6 @@ function UsernameModal({
         >
           {isPending ? 'Registering...' : hasUserRegistry ? 'Register username' : 'Save demo username'}
         </button>
-        {!hasUserRegistry && (
-          <p className="muted-copy">Demo identity mode: add VITE_USER_REGISTRY_ADDRESS after deploying UserRegistry for on-chain names.</p>
-        )}
         {error && <p className="error-copy">{error.message}</p>}
       </section>
     </div>

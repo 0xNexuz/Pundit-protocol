@@ -29,7 +29,7 @@ function envAddress(value: string | undefined, fallback: `0x${string}`): `0x${st
 }
 
 export const CONTRACT_ADDRESSES = {
-  userRegistry: envAddress(import.meta.env.VITE_USER_REGISTRY_ADDRESS, zeroAddress),
+  userRegistry: envAddress(import.meta.env.VITE_USER_REGISTRY_ADDRESS, '0x5D554270F7A1Ee9c58A5337b5DDc29672881FA2b'),
   registry: envAddress(import.meta.env.VITE_PREDICTION_REGISTRY_ADDRESS, '0x6FB454e649376482AF54b1d7B4E2615C6b853fC4'),
   tracker: envAddress(import.meta.env.VITE_ACCURACY_ADDRESS, '0xAaA41edfd73A45D734bF13264cBe7413c611d2f7'),
   subscription: envAddress(import.meta.env.VITE_SUBSCRIPTION_ADDRESS, '0x7b0d4E922916AEa5cDE60f93b07920168DC18Bb9'),
