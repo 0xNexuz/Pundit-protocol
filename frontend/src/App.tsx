@@ -15,6 +15,11 @@ import './App.css'
 
 type Desk = 'predict' | 'reputation' | 'leaderboard' | 'subscription' | 'admin'
 type Phase = 'groups' | 'knockouts'
+type ActivityItem = {
+  name: string
+  action: string
+  detail: string
+}
 
 const imageSections = [
   { src: '/images/hero.png', alt: 'Welcome to Pundit Protocol', label: 'Enter match room', desk: 'predict' },
@@ -110,8 +115,18 @@ const fixtures = [
   },
 ] as const
 
-function shortAddress(address: string) {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+function generatedPunditName(address: string) {
+  return `Pundit ${address.slice(2, 6).toUpperCase()}`
+}
+
+function cachedUsername(address: string | undefined) {
+  if (!address) return ''
+  return window.localStorage.getItem(`pundit-username-${address.toLowerCase()}`) || ''
+}
+
+function cacheUsername(address: string | undefined, username: string) {
+  if (!address || !username) return
+  window.localStorage.setItem(`pundit-username-${address.toLowerCase()}`, username)
 }
 
 function UsernameLabel({ address, fallback = 'Connect wallet' }: { address?: `0x${string}`; fallback?: string }) {
@@ -124,7 +139,42 @@ function UsernameLabel({ address, fallback = 'Connect wallet' }: { address?: `0x
   })
 
   if (!address) return <>{fallback}</>
-  return <>{username || shortAddress(address)}</>
+  return <>{username || cachedUsername(address) || generatedPunditName(address)}</>
+}
+
+function WalletIdentityButton({ displayName }: { displayName: string }) {
+  return (
+    <ConnectButton.Custom>
+      {({ account, mounted, openAccountModal, openConnectModal }) => (
+        <button
+          type="button"
+          className={account ? 'wallet-identity is-connected' : 'wallet-identity'}
+          disabled={!mounted}
+          onClick={account ? openAccountModal : openConnectModal}
+        >
+          <span>{account ? displayName : 'Connect Wallet'}</span>
+        </button>
+      )}
+    </ConnectButton.Custom>
+  )
+}
+
+function ActivityTicker({ items }: { items: ActivityItem[] }) {
+  const tickerItems = [...items, ...items]
+
+  return (
+    <div className="activity-ticker" aria-label="Live protocol activity">
+      <div className="activity-track">
+        {tickerItems.map((item, index) => (
+          <span className="activity-pill" key={`${item.name}-${item.action}-${index}`}>
+            <b>{item.name}</b>
+            <em>{item.action}</em>
+            <small>{item.detail}</small>
+          </span>
+        ))}
+      </div>
+    </div>
+  )
 }
 
 function ExpertBadge({ team, accuracy }: { team: string; accuracy?: bigint }) {
@@ -463,7 +513,13 @@ const { data: accuracy } = useReadContract({
   )
 }
 
-function UsernameModal({ onRegistered }: { onRegistered: () => void }) {
+function UsernameModal({
+  address,
+  onRegistered,
+}: {
+  address: `0x${string}`
+  onRegistered: (username: string) => void
+}) {
   const [username, setUsername] = useState('')
   const {
     data: registrationHash,
@@ -477,8 +533,13 @@ function UsernameModal({ onRegistered }: { onRegistered: () => void }) {
   const isValidUsername = /^[A-Za-z0-9_]{3,24}$/.test(username)
 
   useEffect(() => {
-    if (isSuccess) onRegistered()
-  }, [isSuccess, onRegistered])
+    if (isSuccess) onRegistered(username)
+  }, [isSuccess, onRegistered, username])
+
+  function saveLocalUsername() {
+    cacheUsername(address, username)
+    onRegistered(username)
+  }
 
   return (
     <div className="username-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="username-title">
@@ -502,20 +563,26 @@ function UsernameModal({ onRegistered }: { onRegistered: () => void }) {
         <small>Use 3-24 letters, numbers, or underscores.</small>
         <button
           type="button"
-          disabled={!isValidUsername || isPending || !hasUserRegistry}
-          onClick={() =>
+          disabled={!isValidUsername || isPending}
+          onClick={() => {
+            if (!hasUserRegistry) {
+              saveLocalUsername()
+              return
+            }
+
+            cacheUsername(address, username)
             writeRegistration({
               address: CONTRACT_ADDRESSES.userRegistry,
               abi: userRegistryAbi,
               functionName: 'register',
               args: [username],
             })
-          }
+          }}
         >
-          {isPending ? 'Registering...' : 'Register username'}
+          {isPending ? 'Registering...' : hasUserRegistry ? 'Register username' : 'Save demo username'}
         </button>
         {!hasUserRegistry && (
-          <p className="error-copy">Add VITE_USER_REGISTRY_ADDRESS after deploying UserRegistry.</p>
+          <p className="muted-copy">Demo identity mode: add VITE_USER_REGISTRY_ADDRESS after deploying UserRegistry for on-chain names.</p>
         )}
         {error && <p className="error-copy">{error.message}</p>}
       </section>
@@ -550,6 +617,7 @@ function App() {
   const [predictionOutcome, setPredictionOutcome] = useState(1)
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
+  const [localUsername, setLocalUsername] = useState('')
   const [hasEnteredApp, setHasEnteredApp] = useState(() => Boolean(window.location.hash))
   const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
   const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
@@ -584,7 +652,34 @@ function App() {
     query: { enabled: Boolean(address && hasRegistered && hasUserRegistry) },
   })
 
-  const userDisplayName = registeredUsername || (address ? shortAddress(address) : 'Connected Pundit')
+  const userDisplayName = registeredUsername || localUsername || (address ? generatedPunditName(address) : 'Connected Pundit')
+  const activityItems = useMemo<ActivityItem[]>(() => [
+    {
+      name: address ? userDisplayName : 'New visitor',
+      action: address ? 'signed in' : 'watching',
+      detail: address ? 'identity ready' : 'connect wallet',
+    },
+    {
+      name: 'LagosOracle',
+      action: 'subscribed',
+      detail: 'Argentina room',
+    },
+    {
+      name: 'Pundit AI Coach',
+      action: 'posted pick',
+      detail: outcomes[aiOutcome],
+    },
+    {
+      name: 'AccraSignal',
+      action: 'climbed',
+      detail: 'leaderboard #3',
+    },
+    {
+      name: 'XLayerFan',
+      action: 'registered',
+      detail: 'new pundit',
+    },
+  ], [address, aiOutcome, userDisplayName])
 
   const { data: accuracy, refetch: refetchAccuracy } = useReadContract({
     address: CONTRACT_ADDRESSES.tracker,
@@ -691,8 +786,14 @@ function App() {
   }, [scrollToConsole])
 
   useEffect(() => {
+    if (!address) {
+      window.setTimeout(() => setLocalUsername(''), 0)
+      return
+    }
+
+    window.setTimeout(() => setLocalUsername(cachedUsername(address)), 0)
     if (hasRegistered) void refetchUsername()
-  }, [hasRegistered, refetchUsername])
+  }, [address, hasRegistered, refetchUsername])
 
   useEffect(() => {
     if (marketCountdown <= 0) return
@@ -826,10 +927,12 @@ function App() {
     })
   }
 
-  const shouldShowUsernameModal = Boolean(address && hasUserRegistry && hasRegistered === false)
-  const usernameModal = shouldShowUsernameModal ? (
+  const shouldShowUsernameModal = Boolean(address && !registeredUsername && !localUsername && (hasRegistered === false || !hasUserRegistry))
+  const usernameModal = shouldShowUsernameModal && address ? (
     <UsernameModal
-      onRegistered={() => {
+      address={address}
+      onRegistered={(username) => {
+        setLocalUsername(username)
         void refetchRegistration()
         void refetchUsername()
       }}
@@ -851,6 +954,7 @@ function App() {
             window.setTimeout(() => scrollToConsole('auto'), 0)
           }}
         />
+        <ActivityTicker items={activityItems} />
         {usernameModal}
       </>
     )
@@ -871,9 +975,9 @@ function App() {
         <button type="button" onClick={() => setViewingCenterMode((current) => !current)}>
           {isViewingCenterMode ? 'Visual Mode' : 'Viewing Center'}
         </button>
-        {address && <span className="nav-username">{userDisplayName}</span>}
-        <ConnectButton chainStatus="name" accountStatus="avatar" showBalance={false} />
+        <WalletIdentityButton displayName={userDisplayName} />
       </nav>
+      <ActivityTicker items={activityItems} />
 
       {isViewingCenterMode ? (
         <section className="viewing-center-shell" data-reveal>
