@@ -1010,26 +1010,6 @@ function App() {
               loading={index === 0 ? 'eager' : 'lazy'}
             />
             <div className="section-hotspot">
-              <div className="section-route-strip" aria-label="World Cup routes">
-                <button type="button" onClick={(event) => {
-                  event.stopPropagation()
-                  openDesk('predict')
-                }}>
-                  Predict
-                </button>
-                <button type="button" onClick={(event) => {
-                  event.stopPropagation()
-                  openDesk('leaderboard')
-                }}>
-                  Leaderboard
-                </button>
-                <button type="button" onClick={(event) => {
-                  event.stopPropagation()
-                  openDesk('subscription')
-                }}>
-                  Squad
-                </button>
-              </div>
               {section.desk === 'wallet' ? (
                 <ConnectButton.Custom>
                   {({ account, mounted, openConnectModal }) => (
