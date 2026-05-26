@@ -233,31 +233,43 @@
 
 .username-modal-backdrop {
   position: fixed;
-  inset: 0;
-  z-index: 60;
-  display: grid;
-  place-items: center;
-  padding: 18px;
-  background: rgba(0, 0, 0, 0.62);
-  backdrop-filter: blur(18px);
+  z-index: 19;
+  left: 18px;
+  bottom: 58px;
+  width: min(390px, calc(100vw - 36px));
+  pointer-events: none;
 }
 
 .username-modal {
-  width: min(460px, 100%);
+  position: relative;
+  width: 100%;
   border: 1px solid rgba(251, 255, 232, 0.18);
-  border-radius: 28px;
-  padding: 26px;
+  border-radius: 22px;
+  padding: 18px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0.055)),
-    #06100c;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.44);
+    rgba(6, 16, 12, 0.94);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.34);
   color: var(--paper);
+  pointer-events: auto;
+  backdrop-filter: blur(18px) saturate(1.2);
+}
+
+.identity-dismiss {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  min-height: 28px;
+  padding: 0 10px;
+  border-color: rgba(251, 255, 232, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 10px;
 }
 
 .username-modal h2 {
-  margin: 8px 0 10px;
+  margin: 8px 54px 8px 0;
   color: var(--paper);
-  font-size: clamp(28px, 6vw, 44px);
+  font-size: clamp(22px, 4vw, 30px);
 }
 
 .username-modal p,
@@ -268,9 +280,16 @@
 
 .username-modal button {
   width: 100%;
-  margin-top: 16px;
+  margin-top: 12px;
   background: linear-gradient(135deg, rgba(223, 255, 127, 0.96), rgba(119, 244, 199, 0.9));
   color: var(--ink);
+}
+
+.username-modal .identity-dismiss {
+  width: auto;
+  margin-top: 0;
+  color: var(--paper);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .error-copy {
@@ -1387,6 +1406,18 @@ button:focus-visible,
 
   .activity-pill {
     padding: 7px 10px;
+  }
+
+  .username-modal-backdrop {
+    left: 12px;
+    right: 12px;
+    bottom: 52px;
+    width: auto;
+  }
+
+  .username-modal {
+    max-height: 42vh;
+    overflow: auto;
   }
 
   .console-section {

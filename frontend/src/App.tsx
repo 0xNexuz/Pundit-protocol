@@ -515,9 +515,11 @@ const { data: accuracy } = useReadContract({
 
 function UsernameModal({
   address,
+  onDismiss,
   onRegistered,
 }: {
   address: `0x${string}`
+  onDismiss: () => void
   onRegistered: (username: string) => void
 }) {
   const [username, setUsername] = useState('')
@@ -542,8 +544,11 @@ function UsernameModal({
   }
 
   return (
-    <div className="username-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="username-title">
+    <aside className="username-modal-backdrop" aria-labelledby="username-title">
       <section className="username-modal">
+        <button type="button" className="identity-dismiss" aria-label="Dismiss username prompt" onClick={onDismiss}>
+          Later
+        </button>
         <p className="kicker">Create your pundit identity</p>
         <h2 id="username-title">Choose a username</h2>
         <p>
@@ -583,7 +588,7 @@ function UsernameModal({
         </button>
         {error && <p className="error-copy">{error.message}</p>}
       </section>
-    </div>
+    </aside>
   )
 }
 
@@ -594,16 +599,19 @@ function App() {
   const { writeContract, isPending } = useWriteContract()
   const {
     data: predictionHash,
+    error: predictionError,
     isPending: isPredicting,
     writeContract: writePrediction,
   } = useWriteContract()
   const {
     data: resolveHash,
+    error: resolveError,
     isPending: isResolving,
     writeContract: writeResolveMatch,
   } = useWriteContract()
   const {
     data: gradeHash,
+    error: gradeError,
     isPending: isAutoGrading,
     writeContract: writeGradePundit,
   } = useWriteContract()
@@ -615,9 +623,11 @@ function App() {
   const [actualOutcome, setActualOutcome] = useState(0)
   const [punditAddress, setPunditAddress] = useState('')
   const [localUsername, setLocalUsername] = useState('')
+  const [isUsernamePromptDismissed, setUsernamePromptDismissed] = useState(false)
   const [hasEnteredApp, setHasEnteredApp] = useState(() => Boolean(window.location.hash))
   const [marketCountdown, setMarketCountdown] = useState(DEMO_MARKET_SECONDS)
   const [autoResolvedMatchId, setAutoResolvedMatchId] = useState('')
+  const [activePredictionMatchId, setActivePredictionMatchId] = useState('')
   const autoResolvedMatchRef = useRef('')
   const autoGradedResolveHashRef = useRef<`0x${string}` | ''>('')
 
@@ -807,27 +817,28 @@ function App() {
       !address ||
       !predictionConfirmed ||
       marketCountdown !== 0 ||
-      autoResolvedMatchRef.current === selectedMatch.id ||
+      !activePredictionMatchId ||
+      autoResolvedMatchRef.current === activePredictionMatchId ||
       isResolving
     ) {
       return
     }
 
-    autoResolvedMatchRef.current = selectedMatch.id
-    window.setTimeout(() => setAutoResolvedMatchId(selectedMatch.id), 0)
+    autoResolvedMatchRef.current = activePredictionMatchId
+    window.setTimeout(() => setAutoResolvedMatchId(activePredictionMatchId), 0)
     writeResolveMatch({
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [selectedMatch.id, predictionOutcome],
+      args: [activePredictionMatchId, predictionOutcome],
     })
   }, [
     address,
+    activePredictionMatchId,
     isResolving,
     marketCountdown,
     predictionConfirmed,
     predictionOutcome,
-    selectedMatch.id,
     writeResolveMatch,
   ])
 
@@ -841,9 +852,10 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
-      args: [selectedMatch.id, demoPundit],
+      args: [activePredictionMatchId || selectedMatch.id, demoPundit],
     })
   }, [
+    activePredictionMatchId,
     demoPundit,
     resolveConfirmed,
     resolveHash,
@@ -873,6 +885,7 @@ function App() {
     setSelectedMatchId(matchId)
     setMarketCountdown(DEMO_MARKET_SECONDS)
     autoResolvedMatchRef.current = ''
+    setActivePredictionMatchId('')
     setAutoResolvedMatchId('')
     setActiveDesk('predict')
   }
@@ -888,11 +901,15 @@ function App() {
 
   function submitPrediction() {
     const oneHourFromNow = BigInt(Math.floor((Date.now() + 60 * 60 * 1000) / 1000))
+    const demoMatchId = `${selectedMatch.id}-${Date.now()}`
+    setActivePredictionMatchId(demoMatchId)
+    autoResolvedMatchRef.current = ''
+    setAutoResolvedMatchId('')
     writePrediction({
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
-      args: [selectedMatch.id, predictionOutcome, oneHourFromNow],
+      args: [demoMatchId, predictionOutcome, oneHourFromNow],
     })
   }
 
@@ -901,7 +918,7 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
-      args: [selectedMatch.id, outcome],
+      args: [activePredictionMatchId || selectedMatch.id, outcome],
     })
   }
 
@@ -911,7 +928,7 @@ function App() {
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
-      args: [selectedMatch.id, demoPundit],
+      args: [activePredictionMatchId || selectedMatch.id, demoPundit],
     })
   }
 
@@ -924,12 +941,20 @@ function App() {
     })
   }
 
-  const shouldShowUsernameModal = Boolean(address && !registeredUsername && !localUsername && (hasRegistered === false || !hasUserRegistry))
+  const shouldShowUsernameModal = Boolean(
+    address &&
+      !registeredUsername &&
+      !localUsername &&
+      !isUsernamePromptDismissed &&
+      (hasRegistered === false || !hasUserRegistry),
+  )
   const usernameModal = shouldShowUsernameModal && address ? (
     <UsernameModal
       address={address}
+      onDismiss={() => setUsernamePromptDismissed(true)}
       onRegistered={(username) => {
         setLocalUsername(username)
+        setUsernamePromptDismissed(true)
         void refetchRegistration()
         void refetchUsername()
       }}
@@ -1050,7 +1075,7 @@ function App() {
             <div className="hero-stat">
               <span>{marketCountdown === 0 ? 'Market closed' : 'Market closes'}</span>
               <strong>{marketCountdown}s</strong>
-              {marketCountdown === 0 && autoResolvedMatchId === selectedMatch.id && (
+              {marketCountdown === 0 && autoResolvedMatchId === (activePredictionMatchId || selectedMatch.id) && (
                 <small>{isResolving ? 'Oracle resolving automatically...' : 'Auto-oracle triggered'}</small>
               )}
               {marketCountdown === 0 && !predictionConfirmed && (
@@ -1141,6 +1166,7 @@ function App() {
                     Need test OKB for gas? Open X Layer faucet
                   </a>
                   {predictionConfirmed && <p className="success-copy">Prediction locked. Oracle will resolve automatically when the market closes.</p>}
+                  {predictionError && <p className="error-copy">{predictionError.message}</p>}
                 </div>
               )}
 
@@ -1180,6 +1206,7 @@ function App() {
                     {resolveConfirmed && <p>Oracle resolved with demo outcome.</p>}
                     {isAutoGrading && <p>Submitting grading transaction...</p>}
                     {gradeConfirmed && <p>Reputation refreshed. Winning prediction recorded.</p>}
+                    {gradeError && <p className="error-copy">{gradeError.message}</p>}
                     <ExpertBadge team={selectedMatch.home} accuracy={accuracy} />
                   </div>
                   <button type="button" disabled={!demoPundit || isAutoGrading} onClick={gradePundit}>
@@ -1282,6 +1309,7 @@ function App() {
                   <button type="button" disabled={isResolving || isAutoGrading} onClick={() => resolveMatch(actualOutcome)}>
                     Resolve {selectedMatch.id} with Actual Result
                   </button>
+                  {resolveError && <p className="error-copy">{resolveError.message}</p>}
                 </div>
               )}
             </section>
