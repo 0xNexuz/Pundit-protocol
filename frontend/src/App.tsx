@@ -10,6 +10,7 @@ import {
   predictionRegistryAbi,
   punditSubscriptionAbi,
   userRegistryAbi,
+  xLayerTestnet,
 } from './protocol'
 import './App.css'
 
@@ -35,6 +36,7 @@ const imageSections = [
 const outcomes = ['Home win', 'Draw', 'Away win']
 const DEMO_MARKET_SECONDS = 60
 const XLAYER_FAUCET_URL = 'https://web3.okx.com/en-us/xlayer/faucet'
+const XLAYER_EXPLORER_TX_URL = 'https://www.okx.com/web3/explorer/xlayer-test/tx'
 const deskHashes: Record<Desk, string> = {
   predict: '#predict',
   reputation: '#reputation',
@@ -177,6 +179,22 @@ function ActivityTicker({ items }: { items: ActivityItem[] }) {
   )
 }
 
+function transactionUrl(hash: `0x${string}`) {
+  return `${XLAYER_EXPLORER_TX_URL}/${hash}`
+}
+
+function TransactionToast({ hash, label }: { hash?: `0x${string}`; label: string }) {
+  if (!hash) return null
+
+  return (
+    <a className="tx-toast" href={transactionUrl(hash)} target="_blank" rel="noreferrer">
+      <span>{label}</span>
+      <strong>{hash.slice(0, 10)}...{hash.slice(-6)}</strong>
+      <small>Tap to view on OKX Explorer</small>
+    </a>
+  )
+}
+
 function ExpertBadge({ team, accuracy }: { team: string; accuracy?: bigint }) {
   const percentage = accuracy ? Number(accuracy) / 100 : 0
   if (percentage < 75) return <span className="badge badge-muted">Badge locked</span>
@@ -269,7 +287,7 @@ function PremiumPredictions({
 
 function WithdrawEarningsButton() {
   const { data: hash, error, isPending, isSuccess, writeContract } = useWriteContract()
-  const explorerUrl = hash ? `https://www.okx.com/web3/explorer/xlayer-test/tx/${hash}` : ''
+  const explorerUrl = hash ? transactionUrl(hash) : ''
 
   return (
     <div className="mt-5 rounded-[24px] border border-emerald-200/20 bg-emerald-300/[0.08] p-4 backdrop-blur-xl">
@@ -287,6 +305,7 @@ function WithdrawEarningsButton() {
           disabled={isPending}
           onClick={() =>
             writeContract({
+              chainId: xLayerTestnet.id,
               address: CONTRACT_ADDRESSES.subscription,
               abi: punditSubscriptionAbi,
               functionName: 'withdrawEarnings',
@@ -324,6 +343,7 @@ function WithdrawEarningsButton() {
         </div>
       )}
       {error && <p className="mt-3 text-sm font-bold text-red-200">{error.message}</p>}
+      <TransactionToast hash={hash} label="Withdrawal transaction sent" />
     </div>
   )
 }
@@ -336,7 +356,7 @@ function PunditProfile({
   onViewReputation: (pundit: `0x${string}`) => void
 }) {
   const { address } = useAccount()
-  const { writeContract, isPending } = useWriteContract()
+  const { data: subscribeHash, error, writeContract, isPending } = useWriteContract()
 
   const { data: subscribed } = useReadContract({
     address: CONTRACT_ADDRESSES.subscription,
@@ -357,6 +377,7 @@ function PunditProfile({
           disabled={isPending}
           onClick={() =>
             writeContract({
+              chainId: xLayerTestnet.id,
               address: CONTRACT_ADDRESSES.subscription,
               abi: punditSubscriptionAbi,
               functionName: 'subscribe',
@@ -367,6 +388,8 @@ function PunditProfile({
         >
           Unlock for 0.01 OKB
         </button>
+        <TransactionToast hash={subscribeHash} label="Subscription transaction sent" />
+        {error && <p className="error-copy">{error.message}</p>}
       </div>
     )
   }
@@ -577,6 +600,7 @@ function UsernameModal({
 
             cacheUsername(address, username)
             writeRegistration({
+              chainId: xLayerTestnet.id,
               address: CONTRACT_ADDRESSES.userRegistry,
               abi: userRegistryAbi,
               functionName: 'register',
@@ -586,6 +610,7 @@ function UsernameModal({
         >
           {isPending ? 'Registering...' : hasUserRegistry ? 'Register username' : 'Save demo username'}
         </button>
+        <TransactionToast hash={registrationHash} label="Username transaction sent" />
         {error && <p className="error-copy">{error.message}</p>}
       </section>
     </aside>
@@ -596,7 +621,12 @@ function App() {
   const [isDocsPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/docs')
   const { address } = useAccount()
   const { openConnectModal } = useConnectModal()
-  const { writeContract, isPending } = useWriteContract()
+  const {
+    data: settingsHash,
+    error: settingsError,
+    writeContract,
+    isPending,
+  } = useWriteContract()
   const {
     data: predictionHash,
     error: predictionError,
@@ -827,6 +857,7 @@ function App() {
     autoResolvedMatchRef.current = activePredictionMatchId
     window.setTimeout(() => setAutoResolvedMatchId(activePredictionMatchId), 0)
     writeResolveMatch({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
@@ -849,6 +880,7 @@ function App() {
 
     autoGradedResolveHashRef.current = resolveHash
     writeGradePundit({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
@@ -906,6 +938,7 @@ function App() {
     autoResolvedMatchRef.current = ''
     setAutoResolvedMatchId('')
     writePrediction({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.registry,
       abi: predictionRegistryAbi,
       functionName: 'submitPrediction',
@@ -915,6 +948,7 @@ function App() {
 
   function resolveMatch(outcome = predictionOutcome) {
     writeResolveMatch({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'resolveMatch',
@@ -925,6 +959,7 @@ function App() {
   function gradePundit() {
     if (!demoPundit) return
     writeGradePundit({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
       abi: accuracyTrackerAbi,
       functionName: 'gradePundit',
@@ -934,6 +969,7 @@ function App() {
 
   function setSubscriptionPrice() {
     writeContract({
+      chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.subscription,
       abi: punditSubscriptionAbi,
       functionName: 'setSubscriptionPrice',
@@ -1000,6 +1036,12 @@ function App() {
         <WalletIdentityButton displayName={userDisplayName} />
       </nav>
       <ActivityTicker items={activityItems} />
+      <div className="tx-toast-stack" aria-live="polite">
+        <TransactionToast hash={predictionHash} label="Prediction transaction sent" />
+        <TransactionToast hash={resolveHash} label="Oracle transaction sent" />
+        <TransactionToast hash={gradeHash} label="Reputation transaction sent" />
+        <TransactionToast hash={settingsHash} label="Subscription settings transaction sent" />
+      </div>
 
       {isViewingCenterMode ? (
         <section className="viewing-center-shell" data-reveal>
@@ -1281,6 +1323,8 @@ function App() {
                   <button type="button" disabled={isPending} onClick={setSubscriptionPrice}>
                     Set My Price to 0.01 OKB
                   </button>
+                  <TransactionToast hash={settingsHash} label="Subscription settings transaction sent" />
+                  {settingsError && <p className="error-copy">{settingsError.message}</p>}
                   <WithdrawEarningsButton />
                   <PunditProfile
                     pundit={validPundit}
