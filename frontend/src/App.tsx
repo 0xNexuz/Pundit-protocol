@@ -121,6 +121,10 @@ function generatedPunditName(address: string) {
   return `Pundit ${address.slice(2, 6).toUpperCase()}`
 }
 
+function isTransactionHash(hash: unknown): hash is `0x${string}` {
+  return typeof hash === 'string' && hash.startsWith('0x') && hash.length > 10
+}
+
 function cachedUsername(address: string | undefined) {
   if (!address) return ''
   return window.localStorage.getItem(`pundit-username-${address.toLowerCase()}`) || ''
@@ -151,8 +155,17 @@ function WalletIdentityButton({ displayName }: { displayName: string }) {
         <button
           type="button"
           className={account ? 'wallet-identity is-connected' : 'wallet-identity'}
-          disabled={!mounted}
-          onClick={account ? openAccountModal : openConnectModal}
+          disabled={!mounted || (!account && !openConnectModal)}
+          onClick={() => {
+            if (account && openAccountModal) {
+              openAccountModal()
+              return
+            }
+
+            if (!account && openConnectModal) {
+              openConnectModal()
+            }
+          }}
         >
           <span>{account ? displayName : 'Connect Wallet'}</span>
         </button>
@@ -183,8 +196,8 @@ function transactionUrl(hash: `0x${string}`) {
   return `${XLAYER_EXPLORER_TX_URL}/${hash}`
 }
 
-function TransactionToast({ hash, label }: { hash?: `0x${string}`; label: string }) {
-  if (!hash) return null
+function TransactionToast({ hash, label }: { hash?: unknown; label: string }) {
+  if (!isTransactionHash(hash)) return null
 
   return (
     <a className="tx-toast" href={transactionUrl(hash)} target="_blank" rel="noreferrer">
@@ -287,7 +300,7 @@ function PremiumPredictions({
 
 function WithdrawEarningsButton() {
   const { data: hash, error, isPending, isSuccess, writeContract } = useWriteContract()
-  const explorerUrl = hash ? transactionUrl(hash) : ''
+  const explorerUrl = isTransactionHash(hash) ? transactionUrl(hash) : ''
 
   return (
     <div className="mt-5 rounded-[24px] border border-emerald-200/20 bg-emerald-300/[0.08] p-4 backdrop-blur-xl">
@@ -323,7 +336,7 @@ function WithdrawEarningsButton() {
               <p className="mt-1 text-xs font-bold text-emerald-100/70">
                 Your OKB cash-out transaction was sent to X Layer.
               </p>
-              {hash && (
+              {isTransactionHash(hash) && (
                 <code className="mt-3 inline-block rounded-full bg-black/25 px-3 py-1 text-xs text-emerald-100">
                   {hash.slice(0, 10)}...{hash.slice(-6)}
                 </code>
@@ -1079,14 +1092,14 @@ function App() {
                   {({ account, mounted, openConnectModal }) => (
                     <button
                       type="button"
-                      disabled={!mounted}
+                      disabled={!mounted || (!account && !openConnectModal)}
                       onClick={(event) => {
                         event.stopPropagation()
                         if (account) {
                           openDesk('subscription')
                           return
                         }
-                        openConnectModal()
+                        openConnectModal?.()
                       }}
                     >
                       {account ? 'Open member room' : section.label}
