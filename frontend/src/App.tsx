@@ -1,7 +1,7 @@
 import { ConnectButton, useConnectModal } from '@rainbow-me/rainbowkit'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { isAddress, parseEther } from 'viem'
-import { useAccount, useReadContract, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
+import { useAccount, useReadContract, useSwitchChain, useWaitForTransactionReceipt, useWriteContract } from 'wagmi'
 import PunditHomeDashboard from './components/PunditHomeDashboard'
 import {
   CONTRACT_ADDRESSES,
@@ -300,7 +300,10 @@ function PremiumPredictions({
 
 function WithdrawEarningsButton() {
   const { data: hash, error, isPending, isSuccess, writeContract } = useWriteContract()
+  const { chainId } = useAccount()
+  const { isPending: isSwitchingChain, switchChain } = useSwitchChain()
   const explorerUrl = isTransactionHash(hash) ? transactionUrl(hash) : ''
+  const needsXLayer = chainId !== xLayerTestnet.id
 
   return (
     <div className="mt-5 rounded-[24px] border border-emerald-200/20 bg-emerald-300/[0.08] p-4 backdrop-blur-xl">
@@ -315,17 +318,22 @@ function WithdrawEarningsButton() {
         </div>
         <button
           type="button"
-          disabled={isPending}
-          onClick={() =>
+          disabled={isPending || isSwitchingChain}
+          onClick={() => {
+            if (needsXLayer) {
+              switchChain({ chainId: xLayerTestnet.id })
+              return
+            }
+
             writeContract({
               chainId: xLayerTestnet.id,
               address: CONTRACT_ADDRESSES.subscription,
               abi: punditSubscriptionAbi,
               functionName: 'withdrawEarnings',
             })
-          }
+          }}
         >
-          {isPending ? 'Withdrawing...' : 'Withdraw Earnings'}
+          {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : isPending ? 'Withdrawing...' : 'Withdraw Earnings'}
         </button>
       </div>
       {isSuccess && (
@@ -368,8 +376,10 @@ function PunditProfile({
   pundit: `0x${string}` | undefined
   onViewReputation: (pundit: `0x${string}`) => void
 }) {
-  const { address } = useAccount()
+  const { address, chainId } = useAccount()
+  const { isPending: isSwitchingChain, switchChain } = useSwitchChain()
   const { data: subscribeHash, error, writeContract, isPending } = useWriteContract()
+  const needsXLayer = chainId !== xLayerTestnet.id
 
   const { data: subscribed } = useReadContract({
     address: CONTRACT_ADDRESSES.subscription,
@@ -387,8 +397,13 @@ function PunditProfile({
         <p>Premium notes for <UsernameLabel address={pundit} /> are locked behind the on-chain pass.</p>
         <button
           type="button"
-          disabled={isPending}
-          onClick={() =>
+          disabled={isPending || isSwitchingChain}
+          onClick={() => {
+            if (needsXLayer) {
+              switchChain({ chainId: xLayerTestnet.id })
+              return
+            }
+
             writeContract({
               chainId: xLayerTestnet.id,
               address: CONTRACT_ADDRESSES.subscription,
@@ -397,9 +412,9 @@ function PunditProfile({
               args: [pundit],
               value: parseEther('0.01'),
             })
-          }
+          }}
         >
-          Unlock for 0.01 OKB
+          {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : 'Unlock for 0.01 OKB'}
         </button>
         <TransactionToast hash={subscribeHash} label="Subscription transaction sent" />
         {error && <p className="error-copy">{error.message}</p>}
@@ -559,6 +574,8 @@ function UsernameModal({
   onRegistered: (username: string) => void
 }) {
   const [username, setUsername] = useState('')
+  const { chainId } = useAccount()
+  const { isPending: isSwitchingChain, switchChain } = useSwitchChain()
   const {
     data: registrationHash,
     error,
@@ -569,6 +586,7 @@ function UsernameModal({
     hash: registrationHash,
   })
   const isValidUsername = /^[A-Za-z0-9_]{3,24}$/.test(username)
+  const needsXLayer = chainId !== xLayerTestnet.id
 
   useEffect(() => {
     if (isSuccess) onRegistered(username)
@@ -604,10 +622,15 @@ function UsernameModal({
         <small>Use 3-24 letters, numbers, or underscores.</small>
         <button
           type="button"
-          disabled={!isValidUsername || isPending}
+          disabled={!isValidUsername || isPending || isSwitchingChain}
           onClick={() => {
             if (!hasUserRegistry) {
               saveLocalUsername()
+              return
+            }
+
+            if (needsXLayer) {
+              switchChain({ chainId: xLayerTestnet.id })
               return
             }
 
@@ -621,7 +644,15 @@ function UsernameModal({
             })
           }}
         >
-          {isPending ? 'Registering...' : hasUserRegistry ? 'Register username' : 'Save demo username'}
+          {isSwitchingChain
+            ? 'Switching...'
+            : hasUserRegistry && needsXLayer
+              ? 'Switch to X Layer'
+              : isPending
+                ? 'Registering...'
+                : hasUserRegistry
+                  ? 'Register username'
+                  : 'Save demo username'}
         </button>
         <TransactionToast hash={registrationHash} label="Username transaction sent" />
         {error && <p className="error-copy">{error.message}</p>}
@@ -632,8 +663,9 @@ function UsernameModal({
 
 function App() {
   const [isDocsPage] = useState(() => window.location.pathname.replace(/\/+$/, '') === '/docs')
-  const { address } = useAccount()
+  const { address, chainId } = useAccount()
   const { openConnectModal } = useConnectModal()
+  const { isPending: isSwitchingChain, switchChain } = useSwitchChain()
   const {
     data: settingsHash,
     error: settingsError,
@@ -678,6 +710,7 @@ function App() {
   const visibleFixtures = fixtures.filter((fixture) => fixture.phase === activePhase)
   const validPundit = isAddress(punditAddress) ? punditAddress : undefined
   const demoPundit = validPundit ?? address
+  const needsXLayer = Boolean(address && chainId !== xLayerTestnet.id)
   const aiOutcome = selectedMatch.phase === 'knockouts' ? 0 : (selectedMatch.id.length + selectedMatch.home.length) % outcomes.length
 
   const {
@@ -858,6 +891,7 @@ function App() {
   useEffect(() => {
     if (
       !address ||
+      needsXLayer ||
       !predictionConfirmed ||
       marketCountdown !== 0 ||
       !activePredictionMatchId ||
@@ -881,6 +915,7 @@ function App() {
     activePredictionMatchId,
     isResolving,
     marketCountdown,
+    needsXLayer,
     predictionConfirmed,
     predictionOutcome,
     writeResolveMatch,
@@ -944,7 +979,17 @@ function App() {
     scrollToConsole()
   }
 
+  function ensureXLayer() {
+    if (!address) return false
+    if (!needsXLayer) return true
+
+    switchChain({ chainId: xLayerTestnet.id })
+    return false
+  }
+
   function submitPrediction() {
+    if (!ensureXLayer()) return
+
     const oneHourFromNow = BigInt(Math.floor((Date.now() + 60 * 60 * 1000) / 1000))
     const demoMatchId = `${selectedMatch.id}-${Date.now()}`
     setActivePredictionMatchId(demoMatchId)
@@ -960,6 +1005,8 @@ function App() {
   }
 
   function resolveMatch(outcome = predictionOutcome) {
+    if (!ensureXLayer()) return
+
     writeResolveMatch({
       chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
@@ -971,6 +1018,8 @@ function App() {
 
   function gradePundit() {
     if (!demoPundit) return
+    if (!ensureXLayer()) return
+
     writeGradePundit({
       chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.tracker,
@@ -981,6 +1030,8 @@ function App() {
   }
 
   function setSubscriptionPrice() {
+    if (!ensureXLayer()) return
+
     writeContract({
       chainId: xLayerTestnet.id,
       address: CONTRACT_ADDRESSES.subscription,
@@ -1055,6 +1106,17 @@ function App() {
         <TransactionToast hash={gradeHash} label="Reputation transaction sent" />
         <TransactionToast hash={settingsHash} label="Subscription settings transaction sent" />
       </div>
+      {needsXLayer && (
+        <div className="network-warning" role="status">
+          <div>
+            <strong>Switch to X Layer Testnet</strong>
+            <span>Transactions use OKB gas on chain 1952.</span>
+          </div>
+          <button type="button" disabled={isSwitchingChain} onClick={() => switchChain({ chainId: xLayerTestnet.id })}>
+            {isSwitchingChain ? 'Switching...' : 'Switch network'}
+          </button>
+        </div>
+      )}
 
       {isViewingCenterMode ? (
         <section className="viewing-center-shell" data-reveal>
@@ -1137,12 +1199,16 @@ function App() {
                 <small>Lock the demo prediction to auto-resolve.</small>
               )}
               {marketCountdown === 0 && (
-                <button type="button" disabled={isResolving || isAutoGrading} onClick={() => resolveMatch()}>
+                <button type="button" disabled={isResolving || isAutoGrading || isSwitchingChain} onClick={() => resolveMatch()}>
                   {isResolving
                     ? 'Resolving...'
                     : isAutoGrading
                       ? 'Updating reputation...'
-                      : 'Trigger Oracle / Resolve Match'}
+                      : isSwitchingChain
+                        ? 'Switching...'
+                        : needsXLayer
+                          ? 'Switch to X Layer'
+                          : 'Trigger Oracle / Resolve Match'}
                 </button>
               )}
             </div>
@@ -1214,8 +1280,8 @@ function App() {
                       </button>
                     ))}
                   </div>
-                  <button type="button" disabled={!address || isPredicting} onClick={submitPrediction}>
-                    {isPredicting ? 'Locking prediction...' : 'Lock Prediction'}
+                  <button type="button" disabled={!address || isPredicting || isSwitchingChain} onClick={submitPrediction}>
+                    {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : isPredicting ? 'Locking prediction...' : 'Lock Prediction'}
                   </button>
                   <a className="faucet-link" href={XLAYER_FAUCET_URL} target="_blank" rel="noreferrer">
                     Need test OKB for gas? Open X Layer faucet
@@ -1264,8 +1330,8 @@ function App() {
                     {gradeError && <p className="error-copy">{gradeError.message}</p>}
                     <ExpertBadge team={selectedMatch.home} accuracy={accuracy} />
                   </div>
-                  <button type="button" disabled={!demoPundit || isAutoGrading} onClick={gradePundit}>
-                    Grade Pundit for Selected Match
+                  <button type="button" disabled={!demoPundit || isAutoGrading || isSwitchingChain} onClick={gradePundit}>
+                    {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : 'Grade Pundit for Selected Match'}
                   </button>
                 </div>
               )}
@@ -1333,8 +1399,8 @@ function App() {
                     Pundit address
                     <input value={punditAddress} onChange={(event) => setPunditAddress(event.target.value)} />
                   </label>
-                  <button type="button" disabled={isPending} onClick={setSubscriptionPrice}>
-                    Set My Price to 0.01 OKB
+                  <button type="button" disabled={isPending || isSwitchingChain} onClick={setSubscriptionPrice}>
+                    {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : 'Set My Price to 0.01 OKB'}
                   </button>
                   <TransactionToast hash={settingsHash} label="Subscription settings transaction sent" />
                   {settingsError && <p className="error-copy">{settingsError.message}</p>}
@@ -1363,8 +1429,8 @@ function App() {
                       ))}
                     </select>
                   </label>
-                  <button type="button" disabled={isResolving || isAutoGrading} onClick={() => resolveMatch(actualOutcome)}>
-                    Resolve {selectedMatch.id} with Actual Result
+                  <button type="button" disabled={isResolving || isAutoGrading || isSwitchingChain} onClick={() => resolveMatch(actualOutcome)}>
+                    {isSwitchingChain ? 'Switching...' : needsXLayer ? 'Switch to X Layer' : `Resolve ${selectedMatch.id} with Actual Result`}
                   </button>
                   {resolveError && <p className="error-copy">{resolveError.message}</p>}
                 </div>

@@ -266,6 +266,50 @@
   font-weight: 900;
 }
 
+.network-warning {
+  position: fixed;
+  z-index: 25;
+  left: 18px;
+  right: 18px;
+  bottom: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: min(620px, calc(100vw - 36px));
+  margin: 0 auto;
+  border: 1px solid rgba(223, 255, 127, 0.3);
+  border-radius: 20px;
+  padding: 12px;
+  background:
+    linear-gradient(135deg, rgba(223, 255, 127, 0.14), rgba(119, 244, 199, 0.12)),
+    rgba(3, 14, 10, 0.94);
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.38);
+  color: var(--paper);
+  backdrop-filter: blur(18px) saturate(1.25);
+}
+
+.network-warning div {
+  display: grid;
+  gap: 3px;
+}
+
+.network-warning strong {
+  font-size: 13px;
+}
+
+.network-warning span {
+  color: rgba(251, 255, 232, 0.66);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.network-warning button {
+  background: var(--lime);
+  color: var(--ink);
+  white-space: nowrap;
+}
+
 @keyframes activity-flow {
   from {
     transform: translateX(0);
@@ -1458,6 +1502,15 @@ button:focus-visible,
     right: 12px;
     bottom: 52px;
     width: auto;
+  }
+
+  .network-warning {
+    left: 12px;
+    right: 12px;
+    bottom: 52px;
+    width: auto;
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .username-modal-backdrop {
